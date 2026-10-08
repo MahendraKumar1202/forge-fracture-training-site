@@ -8,7 +8,6 @@ A self-contained cybersecurity learning site built with plain HTML, CSS, and Jav
 - Foundation lessons for Nmap, Zenmap, Wireshark, and Linux essentials
 - Six web vulnerability lessons with definitions, review guidance, defenses, and small embedded practice websites
 - A Practice Bench with synthetic vulnerable-versus-defended application models
-- Competition preparation notes focused on scope, methodical checks, and evidence; no event-specific targets or secrets
 
 The practice pages run entirely in the browser. They do not send requests to a target, use a database, execute entered scripts, access server files, or run operating-system commands. They are learning simulations, not live vulnerable services.
 

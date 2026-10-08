@@ -136,7 +136,7 @@
     "cd ..": "Use it to move up one level when navigating a supplied folder tree.",
     "cd ~/practice": "Use it to return to a known practice location without depending on the current folder.",
     "realpath notes.txt": "Use it to confirm where a symbolic or relative path resolves before opening or changing a file.",
-    "tree -L 2": "Use it to understand a challenge bundle's folder structure quickly; use it only when available and permitted.",
+    "tree -L 2": "Use it to understand a practice bundle's folder structure quickly; use it only when available and permitted.",
     "touch notes.txt": "Use it to create a scratch file for notes in a disposable workspace.",
     "mkdir -p practice/notes": "Use it to prepare a predictable working area and avoid mixing scratch files with supplied originals.",
     "cp source.txt copy.txt": "Use it to preserve an original before experimenting with a copy.",
@@ -209,7 +209,6 @@
       unsafe: "query = \"SELECT * FROM items WHERE name = '\" + input + \"'\"\nexecute(query)",
       safer: "query = \"SELECT * FROM items WHERE name = ?\"\nexecute(query, [input])",
       check: ["What is the root cause?", "The application mixes user-controlled data into query syntax.", "Which control separates query structure from user input?", "Parameterized queries keep values as data."],
-      competitionTips: ["Start by mapping each input to the feature and data it influences; keep tests inside the challenge scope.", "Change one input at a time and record the normal response before comparing behavior.", "For a write-up, explain how query structure changed and name parameterized queries as the primary fix."],
       control: "Parameterized queries"
     },
     {
@@ -235,7 +234,6 @@
       unsafe: "record = getRecord(request.recordId)\nreturn record",
       safer: "record = getRecordVisibleTo(\n  request.recordId,\n  session.userId\n)\nreturn record",
       check: ["What does authentication establish?", "It establishes who is making the request, not which records they may access.", "Where must an object permission check run?", "On the server, for every operation involving that object."],
-      competitionTips: ["First establish the account and object the challenge explicitly gives you; do not enumerate unrelated records.", "Compare only the provided synthetic identities and note the server's allow or deny decision.", "Report the missing per-object check and recommend server-side authorization for every read and change."],
       control: "Per-object authorization"
     },
     {
@@ -261,7 +259,6 @@
       unsafe: "path = baseDirectory + userFileName\nreturn readFile(path)",
       safer: "path = resolve(baseDirectory, userFileName)\nif not isInside(path, baseDirectory):\n  reject()\nreturn readFile(path)",
       check: ["When should containment be checked?", "After resolving the final canonical path.", "What is a stronger alternative to accepting file paths?", "Map a safe identifier to an approved file on the server."],
-      competitionTips: ["Identify the intended file area and use only the challenge's supplied sample files.", "Observe how the application normalizes and resolves a path before deciding whether containment failed.", "Document the boundary crossed and recommend canonical path checks or server-side file IDs."],
       control: "Canonical path containment"
     },
     {
@@ -287,7 +284,6 @@
       unsafe: "if user.isSignedIn:\n  runPrivilegedAction()",
       safer: "requirePermission(user, \"records:manage\")\nrunPrivilegedAction()",
       check: ["What is the difference between authentication and authorization?", "Authentication identifies the user; authorization decides which actions and data are allowed.", "Is hiding a control enough?", "No. The server must reject an unauthorized request."],
-      competitionTips: ["Read the challenge rules and role descriptions before testing a protected function.", "Compare the visible interface with the server's decision; a hidden button alone does not prove access is blocked.", "State which action lacked a server-side permission check and what the least-privilege policy should allow."],
       control: "Server-side permission checks"
     },
     {
@@ -313,7 +309,6 @@
       unsafe: "html = \"<p>\" + userInput + \"</p>\"\nrenderHTML(html)",
       safer: "renderText(\"p\", userInput)\n// Template encodes text for HTML output",
       check: ["What determines the right output encoding?", "The context where the value is inserted.", "Should user text be assembled into HTML strings?", "No. Use a safe text or template API that encodes output."],
-      competitionTips: ["Use the supplied inert sample and observe whether it appears as text or changes the page structure.", "Record the exact reflection context—text, attribute, or another location—because the defense depends on context.", "Describe impact without collecting another participant's data; recommend contextual output encoding and safe DOM APIs."],
       control: "Context-aware output encoding"
     },
     {
@@ -339,7 +334,6 @@
       unsafe: "command = \"lookup \" + userInput\nrunShell(command)",
       safer: "runProcess(\n  executable = \"lookup\",\n  arguments = [validatedValue],\n  shell = false\n)",
       check: ["What creates the parsing risk?", "Putting untrusted input into a shell command string.", "What is safer when a process is necessary?", "Use a fixed executable and pass validated arguments separately without a shell."],
-      competitionTips: ["Treat command execution challenges as high impact; follow the event's exact scope and stop conditions.", "Look for evidence that input is interpreted as shell syntax, but keep verification inside the provided isolated challenge.", "Explain the unsafe boundary and recommend a fixed executable, structured arguments, and a least-privileged service account."],
       control: "Structured process arguments"
     }
   ];
@@ -504,8 +498,7 @@
       '<div class="grid">' +
       '<article class="principle"><span class="principle-num">01 / SCOPE</span><h3>Know what is in bounds</h3><p>Practice only on systems you own or have explicit written permission to assess.</p></article>' +
       '<article class="principle"><span class="principle-num">02 / EVIDENCE</span><h3>Observe before concluding</h3><p>A scan or message is a signal to understand. Validate findings in a safe, controlled environment.</p></article>' +
-      '<article class="principle"><span class="principle-num">03 / DESIGN</span><h3>Make trust explicit</h3><p>Keep data separate from instructions, and enforce access where the server can verify it.</p></article></div>' +
-      lessonBlock("C", "Competition approach", list(["Read the event rules before choosing a tool or testing an action.", "Keep a brief log of hypotheses, observations, and what you have already ruled out.", "Prioritize clear evidence and a concise explanation over repeated, unstructured attempts."]));
+      '<article class="principle"><span class="principle-num">03 / DESIGN</span><h3>Make trust explicit</h3><p>Keep data separate from instructions, and enforce access where the server can verify it.</p></article></div>';
   }
 
   function renderNetwork() {
@@ -516,21 +509,20 @@
         ["net-addressing", "01 · Addresses & subnets", "IPv4 and IPv6, CIDR prefixes, private ranges, and local-link identifiers."],
         ["net-routing", "02 · Routing & gateways", "Routing tables, default gateways, next hops, NAT, and neighbor resolution."],
         ["net-services", "03 · DNS, ports & protocols", "DNS and DHCP, TCP and UDP, ports, HTTP, HTTPS, and TLS."],
-        ["net-troubleshooting", "04 · Network troubleshooting", "A repeatable diagnostic sequence with competition preparation notes."]
+        ["net-troubleshooting", "04 · Network troubleshooting", "A repeatable diagnostic sequence from interface to application." ]
       ].map(function (chapter) {
         return '<button class="card course-card" type="button" data-go="' + chapter[0] + '"><span class="course-index">NETWORK FIELD NOTE</span><h3>' + chapter[1] + '</h3><p>' + chapter[2] + '</p><span class="card-foot"><span>CONCEPTS · COMMANDS · PRACTICE</span><span>OPEN ↗</span></span></button>';
       }).join("") + "</div>" +
-      lessonBlock("C", "Competition essentials", list(["Before the event, read the rules, scope, allowed tools, rate limits, support channel, and stop conditions; prepare only approved software and references.", "During the event, keep a compact record of in-scope names, addresses, ports, protocols, observations, confidence, and time.", "Separate confirmed evidence from assumptions, coordinate notes with teammates, and avoid actions that could affect systems or data outside the challenge."])) +
       lessonActions("net-addressing");
   }
 
-  function networkChapter(title, lead, concepts, competitionPoints, next) {
+  function networkChapter(title, lead, concepts, fieldNotes, next) {
     return lessonHeader("Foundation / Networking", title, lead, "01") +
       '<div class="grid two">' + concepts.map(function (item, i) {
         return '<article class="card"><span class="course-index">CONCEPT 0' + (i + 1) + '</span><h3>' + esc(item[0]) + '</h3><p>' + esc(item[1]) + '</p><p><strong>Why it matters:</strong> ' + esc(item[2]) + '</p>' + (item[3] ? codeCard("Linux example", item[3]) : "") + '</article>';
       }).join("") + "</div>" +
-      lessonBlock("C", "Competition field notes", list(competitionPoints)) +
-      lessonBlock("Q", "Check your understanding", '<details><summary>What should you record?</summary><div class="details-body">Record the question you were checking, the in-scope sample or endpoint, the observation, and what remains uncertain. Keep event secrets and personal data out of shared notes.</div></details>') +
+      lessonBlock("03", "Practical checks", list(fieldNotes)) +
+      lessonBlock("Q", "Check your understanding", '<details><summary>What should you record?</summary><div class="details-body">Record the question you were checking, the sample or endpoint, the observation, and what remains uncertain. Keep confidential values and personal data out of shared notes.</div></details>') +
       lessonActions(next);
   }
 
@@ -538,9 +530,9 @@
     return networkChapter("Addresses & subnets", "An address identifies a network interface. A prefix describes which destinations are local and which need a router.", [
       ["IPv4 and IPv6", "IPv4 addresses are 32 bits and are commonly written as four decimal octets. IPv6 addresses are 128 bits and use hexadecimal groups. An address belongs to an interface; one machine can have several interfaces and addresses.", "Record the address family and interface when diagnosing a connection. Do not assume a host has only one address.", "ip -br addr"],
       ["CIDR prefix and subnet", "CIDR writes the network prefix after a slash, for example 192.0.2.0/24. The /24 means 24 leading bits describe the network; the remaining 8 bits provide 256 IPv4 address values. In a conventional /24 broadcast subnet, one value identifies the network and one is the broadcast address, leaving 254 host addresses. A subnet mask expresses the same boundary in another form.", "The prefix helps decide whether a destination should be reached directly or through a gateway. Addressing has exceptions—such as point-to-point /31 links—and IPv6 does not use broadcast addresses, so follow the actual network plan.", "ip addr"],
-      ["Private and public ranges", "The common private IPv4 blocks are 10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16. They are meant for internal routing; public addresses are globally allocated. Network address translation (NAT) may let internal hosts share an external address. The 192.0.2.0/24 range used in examples is reserved for documentation.", "Private addressing describes routing scope, not trust. A private service can still be exposed within its network; use only addresses named in event scope.", "ip route"],
+      ["Private and public ranges", "The common private IPv4 blocks are 10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16. They are meant for internal routing; public addresses are globally allocated. Network address translation (NAT) may let internal hosts share an external address. The 192.0.2.0/24 range used in examples is reserved for documentation.", "Private addressing describes routing scope, not trust. A private service can still be exposed within its network; use only addresses you are authorized to assess.", "ip route"],
       ["MAC address and local link", "A MAC address is used for delivery on a local link, while an IP address supports routing between networks. ARP (IPv4) or Neighbor Discovery (IPv6) helps map a nearby IP to a link-layer address. This mapping is usually needed for the next hop, which may be the destination or the gateway.", "This distinction helps separate local-link problems from routing or application problems.", "ip neigh"]
-    ], ["Keep the prefix attached to an address when the event materials provide it; omitting it can change the apparent scope.", "Record hostname, address, port, and service as separate facts rather than merging them into one guess.", "Check your own interface configuration before drawing conclusions about a remote endpoint."], "net-routing");
+    ], ["Keep the prefix attached to an address; omitting it can change which network it describes.", "Record hostname, address, port, and service as separate facts rather than merging them into one guess.", "Check your own interface configuration before drawing conclusions about a remote endpoint."], "net-routing");
   }
 
   function renderNetworkRouting() {
@@ -549,7 +541,7 @@
       ["Default gateway", "A default route is the fallback when no more-specific route matches. It usually points to a local router. The gateway is the next hop, not the final destination.", "Check which gateway is configured before assuming a remote service is down.", "ip route show default"],
       ["Route selection", "A routing table can contain several routes. Systems generally prefer the most-specific matching prefix, then use metrics or policy to choose among comparable paths.", "The route actually selected for one destination is more useful than guessing from a diagram.", "ip route get <approved-ip>"],
       ["Neighbor resolution and NAT", "On a local link, the system needs a link-layer address for its next hop. NAT can rewrite addresses at a network boundary, but it does not replace routing or application protocols.", "A stale neighbor entry can disrupt local delivery; NAT can make observed source addresses differ across boundaries.", "ip neigh"]
-    ], ["Check the selected route for one in-scope address instead of scanning a wider range to diagnose a connection.", "Record the interface and next hop locally; do not publish private event topology.", "Treat an incomplete route trace as a clue because routers may suppress diagnostic replies."], "net-services");
+    ], ["Check the selected route for one authorized destination instead of scanning a wider range to diagnose a connection.", "Record the interface and next hop locally; avoid publishing internal network details.", "Treat an incomplete route trace as a clue because routers may suppress diagnostic replies."], "net-services");
   }
 
   function renderNetworkServices() {
@@ -558,14 +550,13 @@
       ["TCP", "TCP establishes a connection and tracks delivery and order. The three-way handshake begins SYN, SYN-ACK, ACK. Retries and connection states describe behavior but do not alone identify a cause.", "Use timing and connection state as evidence when a service stalls or repeatedly retries.", "ss -tn"],
       ["UDP and ports", "UDP sends datagrams without TCP's connection and delivery guarantees. A port is a 16-bit transport endpoint, numbered 0–65535. Common conventions divide ports into well-known, registered, and dynamic/private ranges, but local assignments and actual service behavior still require confirmation.", "Confirm service behavior rather than relying on a port label alone; TCP and UDP can each use the same number for different endpoints.", "ss -tuln"],
       ["HTTP, HTTPS, and TLS", "HTTP requests and responses include methods, paths, headers, status codes, and sometimes a body. HTTPS is HTTP protected by TLS, which encrypts traffic and checks integrity; certificate validation helps authenticate the server.", "A passive capture of HTTPS generally reveals connection metadata but not the protected application body.", "curl -I https://example.test"]
-    ], ["Record a name, resolved address, port, protocol, and response separately.", "Distinguish a successful transport connection from an application-level error response.", "Use event-provided names and services; examples here are generic or reserved placeholders."], "net-troubleshooting");
+    ], ["Record a name, resolved address, port, protocol, and response separately.", "Distinguish a successful transport connection from an application-level error response.", "Use the names and services supplied for your authorized lab; examples here are generic or reserved placeholders."], "net-troubleshooting");
   }
 
   function renderNetworkTroubleshooting() {
     return lessonHeader("Foundation / Networking", "Network troubleshooting", "Work from the local interface toward the application. Change one variable at a time so the result points to the layer that needs attention.", "04") +
       '<div class="flow"><article class="flow-step"><strong>01 · LINK</strong><p>Is the expected interface up and configured?</p></article><article class="flow-step"><strong>02 · ADDRESS</strong><p>Does the local address and prefix make sense?</p></article><article class="flow-step"><strong>03 · ROUTE</strong><p>Which next hop will the system select?</p></article><article class="flow-step"><strong>04 · SERVICE</strong><p>Does the name resolve and does the expected service respond?</p></article></div>' +
       '<div class="grid two"><article class="card"><h3>1. Check local configuration</h3><p>Inspect interface state and addresses. If the lab machine lacks an expected address, remote service checks may be premature.</p>' + codeCard("Local interfaces", "ip -br addr") + '</article><article class="card"><h3>2. Check the route</h3><p>Ask which interface and gateway would be used for one authorized destination.</p>' + codeCard("Selected route", "ip route get <approved-ip>") + '</article><article class="card"><h3>3. Check name resolution</h3><p>Resolve the provided name using configured lookup sources; treat a DNS answer as separate evidence from reachability.</p>' + codeCard("Configured lookup", "getent hosts <lab-name>") + '</article><article class="card"><h3>4. Check the application response</h3><p>If the endpoint is in scope, inspect its status and headers. A response proves an application answered, not that its content is correct.</p>' + codeCard("Response headers", "curl -I https://example.test") + '</article></div>' +
-      lessonBlock("C", "Competition-ready workflow", list(["Read event rules, scope, rate limits, and stop conditions before any active check.", "Keep a small record of endpoint, check, result, time, and confidence so a teammate can follow your reasoning.", "If a check risks availability or unrelated data, stop and use the event's support or reporting channel."])) +
       lessonActions("nmap");
   }
 
@@ -582,7 +573,6 @@
       '<div class="grid two"><article class="card"><span class="eyebrow">SAMPLE SUMMARY</span><pre class="sample-output"><code>Host is up (0.012s latency).\nPORT     STATE     SERVICE\n22/tcp   open      ssh\n80/tcp   open      http\n443/tcp  filtered  https</code></pre><p>This is a fictional example using a documentation-only address placeholder. It teaches result reading; it is not a target.</p></article><article class="card"><span class="eyebrow">INTERPRET WITH CARE</span><h3>State is an observation</h3><p><strong>Open:</strong> a service accepted or answered the probe. <strong>Closed:</strong> the host replied, but no service was listening on that port. <strong>Filtered:</strong> a network control prevented a clear classification.</p><p>A service name is a best-effort label, not proof of product or version. Confirm findings through authorized inventory and owner context.</p></article></div>' +
       infoDisclosure("What to record in an authorized scan note", "<p>Record the approved scope, time window, tool and relevant options, high-level results, uncertainties, and any unexpected service impact. Store detailed output according to the organization's data-handling rules.</p>") +
       lessonBlock("02", "Responsible workflow", list(["Confirm the scope, timing, and allowed scan intensity before starting.", "Begin with the least intrusive check that answers the question.", "Record the command, time, and relevant output for an authorized report.", "Stop if the activity causes unexpected service impact and contact the system owner."])) +
-      lessonBlock("C", "Competition field notes", list(["Start with the least intrusive scan allowed by the rules, then increase detail only when needed.", "Prioritize unusual open services and verify service clues; do not equate a port or version string with a confirmed weakness.", "Keep a short inventory of what you checked, what responded, and what remains uncertain."])) +
       lessonBlock("03", "Check your understanding", '<details><summary>Does “filtered” mean that a service is vulnerable?</summary><div class="details-body">No. It means the scan did not receive enough information to classify the port clearly, often because a filter affected the response.</div></details><details><summary>Should a version string be treated as verified inventory?</summary><div class="details-body">No. It is a useful clue that should be confirmed against trusted asset information.</div></details>') +
       lessonActions("zen");
   }
@@ -605,7 +595,6 @@
       '<div class="section-head"><h2>Use the interface as a learning loop</h2><span class="minor">SET → INSPECT → RUN → REVIEW</span></div>' +
       '<div class="grid two"><article class="card"><h3>1. Set a permitted target</h3><p>Use only the host or range provided for the lab. Keep scope and timing visible before choosing a profile.</p></article><article class="card"><h3>2. Inspect the generated command</h3><p>Notice how profile choices become options. Check whether service detection, scripts, or broader probes are enabled.</p></article><article class="card"><h3>3. Run the smallest useful check</h3><p>Choose a low-impact profile that answers the question. A graphical interface does not reduce scan traffic or risk.</p></article><article class="card"><h3>4. Review and save context</h3><p>Read hosts, ports, and service clues together. Save the command and result with the authorized exercise notes.</p></article></div>' +
       '<div class="note neutral"><span>Choose a profile only after confirming the permitted scope. Read the generated command before starting the scan so its intensity is clear.</span></div>' +
-      lessonBlock("C", "Competition field notes", list(["Paste only the exact in-scope target from the event materials; avoid broad ranges unless they are explicitly authorized.", "Inspect the generated command for added probes or scripts before starting a profile.", "Save the profile name and generated options with your notes so you can reproduce a useful result."])) +
       lessonBlock("01", "Check your understanding", '<details><summary>What is the relationship between Zenmap and Nmap?</summary><div class="details-body">Zenmap provides a graphical workflow around the Nmap scanning engine. The interface does not change the need for authorization or careful scope.</div></details>') +
       lessonActions("ws");
   }
@@ -639,7 +628,6 @@
       '<div class="grid two"><article class="card"><h3>Start broad, then narrow</h3><p>Find the relevant host and time window in the packet list. Apply a display filter to focus the view without changing the capture.</p></article><article class="card"><h3>Expand protocol layers</h3><p>Select one packet and inspect Ethernet, IP, transport, and application fields. Each layer answers a different question.</p></article><article class="card"><h3>Compare request and response</h3><p>Look for direction, timing, retries, and response codes. A missing reply may have several causes, including routing or filtering.</p></article><article class="card"><h3>Account for encryption</h3><p>TLS generally hides application content from a passive capture. Metadata such as endpoints, timing, and packet sizes may remain visible.</p></article></div>' +
       infoDisclosure("Capture filters and display filters", "<p>A <strong>capture filter</strong> limits which packets are recorded and can discard evidence before review. A <strong>display filter</strong> narrows what is shown from packets already captured. Keep an original capture when policy permits and apply display filters during analysis.</p>") +
       '<div class="note neutral"><span>A display filter narrows what you see in an existing capture. A capture filter limits what is recorded in the first place. Check the filter bar’s validity indicator before relying on a result.</span></div>' +
-      lessonBlock("C", "Competition field notes", list(["Start with the event-provided capture or an explicitly authorized interface; avoid collecting unrelated traffic.", "Use timestamps, endpoints, and protocol filters to narrow evidence before following a conversation.", "Keep capture files private and report only the minimum packet details needed to support a finding."])) +
       lessonBlock("01", "Check your understanding", '<details><summary>What is the difference between a packet list and packet details?</summary><div class="details-body">The packet list gives a summary of many packets. Packet details show the protocol fields for one selected packet.</div></details>') +
       lessonActions("linux");
   }
@@ -657,14 +645,13 @@
       '<div class="grid two"><article class="card">' + codeCard("Pipe output into a search", "grep -i \"warning\" app.log | head -n 20") + '<p><strong>What it does:</strong> A pipe sends matching log lines to <code>head</code>, which limits the display to 20 lines.</p><p class="command-why"><strong>Why use it:</strong> Narrow a large log to a manageable set of relevant clues without flooding the terminal.</p></article><article class="card">' + codeCard("Save a command result", "ss -tuln > listening-sockets.txt") + '<p><strong>What it does:</strong> The greater-than operator writes output to a file and replaces its previous contents.</p><p class="command-why"><strong>Why use it:</strong> Save a local snapshot for later comparison; choose a new disposable filename so you do not overwrite useful work.</p></article><article class="card"><h3>Understand standard streams</h3><p><strong>stdin</strong> is input, <strong>stdout</strong> is normal output, and <strong>stderr</strong> is diagnostic output. Redirection can send each stream to a different destination.</p></article><article class="card"><h3>Check before changing</h3><p>Use <code>pwd</code>, inspect the exact path, and understand the command options before moving, overwriting, changing permissions, or removing anything.</p></article></div>' +
       '<div class="section-head"><h2>Read command results in context</h2><span class="minor">A SHORT FIELD ROUTINE</span></div>' +
       '<div class="grid two"><article class="card"><h3>Know where you are</h3><p>Confirm the working directory and the user before using a relative path or an administrative command.</p></article><article class="card"><h3>Inspect, then filter</h3><p>Start with a small output sample. Use a narrow search term or line count before scanning a large log.</p></article><article class="card"><h3>Check permissions</h3><p>In <code>ls -l</code>, read owner, group, and permission bits. Grant only the access needed for the task.</p></article><article class="card"><h3>Protect logs and data</h3><p>Logs can contain names, tokens, paths, or other sensitive data. Keep practice output synthetic and store captures or logs only as policy allows.</p></article></div>' +
-      lessonBlock("C", "Competition field notes", list(["Keep a running note of the current directory, relevant files, and commands that produced useful output.", "Search supplied challenge files in a focused way and preserve originals before editing or unpacking them.", "Use the least privilege available; avoid destructive commands and do not run unknown files outside the challenge's intended environment."])) +
       lessonBlock("01", "Check your understanding", '<details><summary>How can you leave a file viewer such as less?</summary><div class="details-body">Press q to quit and return to the shell.</div></details><details><summary>What should you check before removing a file?</summary><div class="details-body">Confirm the current directory and the exact file path, and make sure the file is disposable.</div></details>') +
       lessonActions("web");
   }
 
   function renderWebOverview() {
     return lessonHeader("Web security / 06", "Web vulnerabilities", "Six common weaknesses, taught through where they arise, how the failure happens, what to review safely, and how to prevent it.", "06") +
-      '<div class="note neutral"><span>These lessons use general software examples and synthetic data. They do not include live targets, credentials, flags, or competition-specific routes. Use the Practice Bench to compare request handling and server decisions.</span></div><button class="btn btn-small" type="button" data-go="demo-lab">Open the Practice Bench&nbsp; →</button>' +
+      '<div class="note neutral"><span>These lessons use general software examples and synthetic data. The Practice Bench compares request handling and server decisions without connecting to real services.</span></div><button class="btn btn-small" type="button" data-go="demo-lab">Open the Practice Bench&nbsp; →</button>' +
       '<div class="section-head"><h2>The review loop</h2><span class="minor">REPEAT THESE QUESTIONS</span></div>' +
       '<div class="grid">' +
       '<article class="principle"><span class="principle-num">01 / SURFACE</span><h3>Where does trust cross?</h3><p>Find the input, object, file, or action that crosses into a protected system boundary.</p></article>' +
@@ -675,8 +662,7 @@
         return '<button class="card course-card" type="button" data-go="' + v.route + '"><span class="course-index">WEB 0' + (i + 1) + " / " + esc(v.category.toUpperCase()) + '</span><h3>' + esc(v.name) + '<span class="impact ' + (v.impact === "Medium" ? "medium" : "") + '">' + esc(v.impact) + "</span></h3><p>" + esc(v.one) + '</p><span class="card-foot"><span>CONTROL: ' + esc(v.control.toUpperCase()) + '</span><span>OPEN ↗</span></span></button>';
       }).join("") + "</div>" +
       '<div class="section-head"><h2>Three defensive principles</h2><span class="minor">A USEFUL DEFAULT FOR EVERY FEATURE</span></div>' +
-      '<div class="grid"><article class="principle"><span class="principle-num">A / INPUT</span><h3>Treat input as data</h3><p>Keep user values separate from query, shell, path, and markup instructions.</p></article><article class="principle"><span class="principle-num">B / SERVER</span><h3>Verify each request</h3><p>Authorization belongs at the server boundary and must cover each object and action.</p></article><article class="principle"><span class="principle-num">C / ACCESS</span><h3>Limit what can happen</h3><p>Use narrow permissions for application accounts, processes, and stored data.</p></article></div>' +
-      lessonBlock("C", "Competition field notes", list(["Translate each challenge prompt into a short list of allowed inputs, accounts, and actions before testing.", "Test one hypothesis at a time and keep a note of the normal result, changed result, and evidence.", "A useful finding explains the root cause and impact without going beyond the data or actions needed to prove it."])) ;
+      '<div class="grid"><article class="principle"><span class="principle-num">A / INPUT</span><h3>Treat input as data</h3><p>Keep user values separate from query, shell, path, and markup instructions.</p></article><article class="principle"><span class="principle-num">B / SERVER</span><h3>Verify each request</h3><p>Authorization belongs at the server boundary and must cover each object and action.</p></article><article class="principle"><span class="principle-num">C / ACCESS</span><h3>Limit what can happen</h3><p>Use narrow permissions for application accounts, processes, and stored data.</p></article></div>';
   }
 
   function miniSiteDocument(v) {
@@ -750,7 +736,6 @@
     return lessonHeader("Practice / Local scenarios", "Practice Bench", "Work through six small application scenarios. Edit a concrete sample and watch the practice app update immediately; switch server policy to compare.", "LAB") +
       '<div class="note neutral"><span>Every scenario runs as an in-page teaching model with synthetic records. The examples are concrete; no input is sent to a website, and no SQL, script, file access, or shell command is executed.</span></div>' +
       '<div class="section-head"><h2>Choose a scenario</h2><span class="minor">REQUEST → DECISION → RESPONSE</span></div>' +
-      lessonBlock("C", "Competition practice habits", list(["Use the Bench to understand request, decision, and response patterns before applying concepts in an event's explicitly in-scope environment.", "Keep a short hypothesis and observation for each attempt instead of changing several things at once.", "Capture only the evidence needed to explain the issue; follow event rules for data handling and stopping conditions."])) +
       vulnerabilities.map(function (v, i) {
         return '<section class="demo-lab-section" id="demo-' + v.id + '"><div class="demo-lab-heading"><span class="course-index">SCENARIO 0' + (i + 1) + '</span><h2>' + esc(v.name) + '</h2><p>' + esc(v.one) + '</p></div>' + renderDemo(v) + '</section>';
       }).join("");
@@ -773,7 +758,6 @@
       infoDisclosure("More detail: where it appears", surfaces) +
       infoDisclosure("More detail: possible impact", impacts) +
       infoDisclosure("Common review misses", misses) +
-      lessonBlock("C", "Competition field notes", list(v.competitionTips)) +
       "</div></div>" +
       '<section class="lesson-demo-section" id="demo-window-' + v.id + '"><div class="lesson-demo-heading"><p class="eyebrow">HANDS-ON WEBSITE / ' + esc(v.name.toUpperCase()) + '</p></div>' + renderDemo(v) + '</section>' +
       lessonActions(index < vulnerabilities.length ? vulnerabilities[index].route : "compare");
@@ -795,7 +779,6 @@
       '<div class="section-head"><h2>Which control addresses which problem?</h2><span class="minor">DESIGN PRINCIPLES</span></div>' +
       '<div class="grid two"><article class="card"><h3>Separate data from instructions</h3><p>Use parameters for database values, structured arguments for processes, and context-aware output encoding for browser content.</p></article><article class="card"><h3>Check identity and permission</h3><p>Authentication identifies the requester. Server-side authorization determines which objects and actions are allowed.</p></article><article class="card"><h3>Confine the resource</h3><p>Resolve file paths and prove they remain inside the intended directory. Limit the process’s access as a second layer.</p></article><article class="card"><h3>Fail closed and record</h3><p>Deny access when a permission rule is missing. Log useful security events without exposing sensitive values.</p></article></div>' +
       lessonBlock("01", "Review checklist", list(["Identify every trust boundary: user input, stored object, file path, process, or role.", "Find the control that runs on the server at the point of use.", "Check whether the control applies consistently across reads, changes, and alternate paths.", "Use synthetic data and explicit written permission for all hands-on assessment."])) +
-      lessonBlock("C", "Competition review habits", list(["Prioritize evidence that answers the challenge objective; avoid unbounded testing when a focused check is enough.", "Keep observations separate from assumptions, and revisit uncertain findings before reporting them.", "Write each issue as condition, evidence, impact, and a practical defensive control."])) +
       '<div class="lesson-actions"><button class="next-btn" type="button" data-go="quickref">Open quick reference&nbsp; →</button><button class="next-btn" type="button" data-go="web">Back to vulnerability lessons</button></div>';
   }
 
@@ -829,8 +812,7 @@
         return '<article class="card"><h3>' + esc(term[0]) + "</h3><p>" + esc(term[1]) + "</p><p><strong>In practice.</strong> " + esc(term[2]) + "</p></article>";
       }).join("") + "</div>" +
       '<div class="grid two">' + [["net-addressing", "Full chapter: addresses & subnets"], ["net-routing", "Full chapter: routing & gateways"], ["net-services", "Full chapter: DNS, ports & protocols"], ["net-troubleshooting", "Full chapter: troubleshooting"]].map(function (item) { return '<button class="next-btn" type="button" data-go="' + item[0] + '">' + item[1] + ' ↗</button>'; }).join("") + "</div>" +
-      lessonBlock("C", "Competition quick checks", list(["Confirm the rules and scope before using any command or active check.", "Use placeholders in notes and redact credentials or personal data from shared evidence.", "Record enough context to reproduce a safe observation: tool, relevant option, time, and result."])) +
-      '<div class="note"><span>Scope all active testing in writing. Keep production data, credentials, and competition-specific information out of practice material.</span></div>';
+      '<div class="note"><span>Use written authorization for active testing. Keep production data and credentials out of practice material.</span></div>';
   }
 
   var pages = {
@@ -907,7 +889,7 @@
       ["Addresses and subnets", "net-addressing", "IPv4 IPv6 CIDR prefix subnet MAC private public address"],
       ["Routing and gateways", "net-routing", "routing table default gateway next hop NAT neighbor route"],
       ["DNS ports and protocols", "net-services", "DNS DHCP TCP UDP HTTP HTTPS TLS port service"],
-      ["Network troubleshooting", "net-troubleshooting", "interface route gateway DNS reachability diagnostics competition"],
+      ["Network troubleshooting", "net-troubleshooting", "interface route gateway DNS reachability diagnostics"],
       ["Nmap", "nmap", "host discovery port scan service version detection"],
       ["Zenmap", "zen", "graphical interface profiles target command output"],
       ["Wireshark", "ws", "packet capture filters protocol analysis"],
