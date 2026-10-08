@@ -51,13 +51,13 @@ git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
 cd YOUR-REPOSITORY
 ```
 
-Run the next commands from the folder containing `index.html`, `style.css`, and `app.js`.
+Run the next commands from the folder containing `index.html`, `style.css`, `app.js`, and `forgeLogo.png`.
 
 ### 3. Copy the site files into the web directory
 
 ```bash
 sudo install -d -m 0755 /var/www/forge-fracture
-sudo install -m 0644 index.html style.css app.js /var/www/forge-fracture/
+sudo install -m 0644 index.html style.css app.js forgeLogo.png /var/www/forge-fracture/
 ```
 
 The files are owned by the administrator and readable by Nginx. No executable permission is needed for the site files.
@@ -114,7 +114,7 @@ In the cloned repository, retrieve the latest version and copy the static files 
 
 ```bash
 git pull --ff-only
-sudo install -m 0644 index.html style.css app.js /var/www/forge-fracture/
+sudo install -m 0644 index.html style.css app.js forgeLogo.png /var/www/forge-fracture/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -123,7 +123,7 @@ sudo systemctl reload nginx
 
 - `sudo nginx -t` reports configuration errors: review the site file in `/etc/nginx/sites-available/forge-fracture` and correct the reported line.
 - The Nginx welcome page still appears: check that the `forge-fracture` link exists in `/etc/nginx/sites-enabled/`, then run `sudo nginx -t` and reload Nginx.
-- The page loads without styling or behavior: confirm `index.html`, `style.css`, and `app.js` are all present in `/var/www/forge-fracture/` and that their names match exactly.
+- The page loads without styling or behavior, or the logo is missing: confirm `index.html`, `style.css`, `app.js`, and `forgeLogo.png` are all present in `/var/www/forge-fracture/` and that their names match exactly.
 - To inspect recent Nginx errors, run `sudo tail -n 50 /var/log/nginx/error.log`.
 
 ## Edit the site
@@ -131,6 +131,7 @@ sudo systemctl reload nginx
 - `index.html` contains the page shell and navigation landmarks.
 - `style.css` contains the visual system and responsive layout.
 - `app.js` contains the lessons, practice simulations, navigation, search, and interactions.
+- `forgeLogo.png` is the site logo image used in the sidebar and header.
 
 ## References
 
