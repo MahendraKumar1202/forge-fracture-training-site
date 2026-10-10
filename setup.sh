@@ -62,8 +62,15 @@ sed "s|%h/forge-fracture-training-site|$ROOT|g" deploy/kali/forge-fracture-train
 sed "s|%h/forge-fracture-training-site|$ROOT|g" deploy/kali/forge-fracture-training-trainer.service > "$HOME/.config/systemd/user/forge-fracture-training-trainer.service"
 systemctl --user daemon-reload
 systemctl --user enable forge-fracture-training-dvwb.service forge-fracture-training-trainer.service
+# Clear recorded failures from earlier attempts (including StartLimitHit) before restarting.
+systemctl --user reset-failed forge-fracture-training-dvwb.service forge-fracture-training-trainer.service
 # Explicit restart is required for already-running units to adopt changed EnvironmentFile values and ExecStart wrappers.
-systemctl --user restart forge-fracture-training-dvwb.service forge-fracture-training-trainer.service
+if ! systemctl --user restart forge-fracture-training-dvwb.service forge-fracture-training-trainer.service; then
+  echo "ERROR: one or both services failed to start. Recent service logs follow:" >&2
+  systemctl --user --no-pager --full status forge-fracture-training-dvwb.service forge-fracture-training-trainer.service || true
+  journalctl --user -u forge-fracture-training-dvwb.service -u forge-fracture-training-trainer.service -n 60 --no-pager || true
+  exit 1
+fi
 for port in "${TRAINER_PORT:-9000}" "${DVWB_PORT:-9001}"; do
   if ! .venv/bin/python - "$port" <<'PY'
 import sys, time, urllib.request
