@@ -54,6 +54,8 @@ Open [http://127.0.0.1:9000/](http://127.0.0.1:9000/) for the trainer. Select **
 
 The DVWB creates its local SQLite database at `dvwb/dvwb.sqlite3` on first launch in the manual local-development mode. Do not commit that runtime database. The Kali installer uses `instance/dvwb.sqlite3` by default.
 
+SQLite is configured for WAL mode (when the filesystem supports it), a 15-second busy timeout, and foreign-key enforcement to reduce reader/writer contention during workshops. Invalid SQL-injection payloads return a visible error instead of leaving a failed transaction open; a database that remains busy returns a retry message rather than hanging indefinitely.
+
 ## B. Quick Kali deployment (user services, direct HTTP)
 
 Use this when you want the same simple operational model as the main Forge & Fracture portal. The trainer and intentionally vulnerable DVWB run as two `systemd --user` services, so you do not need to keep a terminal open. With lingering disabled, keep the Kali user session logged in during the workshop. This mode binds both ports to the VM's network interfaces; firewall them to the isolated participant subnet and never forward them from the public internet.

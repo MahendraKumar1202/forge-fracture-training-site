@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import logging
 import os
 import secrets
 from pathlib import Path
@@ -15,7 +16,8 @@ from pathlib import Path
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import ForeignKey, String, create_engine, inspect, text
+from sqlalchemy import ForeignKey, String, create_engine, event, inspect, text
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from urllib.parse import quote
 
@@ -24,8 +26,33 @@ TRAINING_FILES = BASE / "training_files"
 PUBLIC_FILES = TRAINING_FILES / "public"
 PRIVATE_FILES = TRAINING_FILES / "private"
 DATABASE_URL = os.getenv("DVWB_DATABASE_URL", f"sqlite:///{BASE / 'dvwb.sqlite3'}")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {})
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
+SQLITE_CONNECT_ARGS = {"check_same_thread": False, "timeout": 15} if IS_SQLITE else {}
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=SQLITE_CONNECT_ARGS,
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+logger = logging.getLogger("dvwb.database")
+
+if IS_SQLITE:
+    @event.listens_for(engine, "connect")
+    def _configure_sqlite_connection(dbapi_connection, _connection_record):
+        # Make lock waits bounded and consistently enforce declared foreign keys.
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA busy_timeout=15000")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    # WAL lets readers continue while another request writes a session or setting.
+    # Some network/shared filesystems don't support WAL; continue with SQLite's
+    # default journal in that case rather than preventing the app from starting.
+    try:
+        with engine.connect() as connection:
+            connection.exec_driver_sql("PRAGMA journal_mode=WAL")
+    except SQLAlchemyError:
+        logger.warning("Could not enable SQLite WAL mode; continuing with default journal", exc_info=True)
 app = FastAPI(title="Utsav Participant Portal", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 
@@ -426,23 +453,33 @@ def home(request: Request):
 
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(""), password: str = Form("")):
-    with SessionLocal() as db:
-        # INTENTIONAL SQL INJECTION LAB: both fields are interpolated into this
-        # query so classic quote/boolean/comment variations can alter its logic.
-        # Only fictional workshop accounts are stored in this isolated app.
-        statement = text(
-            "SELECT id, username, display_name, role FROM participants "
-            f"WHERE username = '{username}' AND password_plain = '{password}' ORDER BY id LIMIT 1"
-        )
-        try:
-            participant = db.execute(statement).mappings().first()
-        except Exception:
-            participant = None
-        if participant is None:
-            return HTMLResponse(login_view("Those details were not recognized."), status_code=401)
-        token = secrets.token_urlsafe(32)
-        db.add(PortalSession(token=token, participant_id=participant["id"]))
-        db.commit()
+    # Keep the deliberately injectable SELECT, but close its result before any
+    # write and always roll back failed transactions. This prevents malformed
+    # payloads from leaving a failed transaction open in the request session.
+    statement = text(
+        "SELECT id, username, display_name, role FROM participants "
+        f"WHERE username = '{username}' AND password_plain = '{password}' ORDER BY id LIMIT 1"
+    )
+    token = secrets.token_urlsafe(32)
+    try:
+        with SessionLocal() as db:
+            try:
+                participant = db.execute(statement).mappings().first()
+            except SQLAlchemyError:
+                db.rollback()
+                logger.info("Login SQL-injection exercise submitted invalid SQL", exc_info=True)
+                return HTMLResponse(login_view("The database rejected that query. Try another payload."), status_code=400)
+            if participant is None:
+                return HTMLResponse(login_view("Those details were not recognized."), status_code=401)
+            participant_id = participant["id"]
+            db.add(PortalSession(token=token, participant_id=participant_id))
+            db.commit()
+    except OperationalError:
+        logger.exception("Database remained locked during login after the configured wait")
+        return HTMLResponse(login_view("The training database is busy. Please submit again."), status_code=503)
+    except SQLAlchemyError:
+        logger.exception("Database error while creating a login session")
+        return HTMLResponse(login_view("The training database could not complete sign-in. Please retry."), status_code=503)
     response = RedirectResponse("/dashboard", status_code=303)
     response.set_cookie("utsav_session", token, httponly=True, samesite="lax")
     return response
