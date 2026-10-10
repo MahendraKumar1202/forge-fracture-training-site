@@ -36,18 +36,35 @@ PY
   echo "Created .env. Edit DVWB_PUBLIC_URL to the Kali VM's participant-reachable IP before opening the trainer."
 else
   chmod 600 .env
-  echo "Preserved existing .env. Verify DVWB_PUBLIC_URL and database path before the event."
+  # Migrate only the previous stock defaults; preserve custom port choices.
+  python3 - "$ROOT/.env" <<'PYENV'
+import re, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+s = p.read_text()
+s = re.sub(r'(?m)^TRAINER_PORT=8001\s*$', 'TRAINER_PORT=9000', s)
+s = re.sub(r'(?m)^DVWB_PORT=8002\s*$', 'DVWB_PORT=9001', s)
+s = re.sub(r'(?m)^(DVWB_PUBLIC_URL=.*):8002(/?)\s*$', r'\g<1>:9001\2', s)
+p.write_text(s)
+PYENV
+  chmod 600 .env
+  echo "Preserved existing .env; migrated old default ports 8001/8002 to 9000/9001 where they were unchanged defaults."
 fi
-if grep -q '^DVWB_PUBLIC_URL=http://192\.168\.10\.10:8002/' .env; then
+# Load the exact values systemd will receive so readiness checks and printed URLs agree.
+set -a
+. "$ROOT/.env"
+set +a
+if [[ "${DVWB_PUBLIC_URL:-}" == "http://192.168.10.10:9001/" ]]; then
   echo "WARNING: .env still has the example DVWB_PUBLIC_URL. Set it to this VM's participant-reachable IP before using the trainer link."
 fi
 # Keep systemd unit copies local to this checkout so service paths remain deterministic.
 sed "s|%h/forge-fracture-training-site|$ROOT|g" deploy/kali/forge-fracture-training-dvwb.service > "$HOME/.config/systemd/user/forge-fracture-training-dvwb.service"
 sed "s|%h/forge-fracture-training-site|$ROOT|g" deploy/kali/forge-fracture-training-trainer.service > "$HOME/.config/systemd/user/forge-fracture-training-trainer.service"
 systemctl --user daemon-reload
-systemctl --user enable --now forge-fracture-training-dvwb.service forge-fracture-training-trainer.service
-for port in 8001 8002; do
-  if [[ "$port" == 8001 ]]; then path=/; else path=/; fi
+systemctl --user enable forge-fracture-training-dvwb.service forge-fracture-training-trainer.service
+# Explicit restart is required for already-running units to adopt changed EnvironmentFile values and ExecStart wrappers.
+systemctl --user restart forge-fracture-training-dvwb.service forge-fracture-training-trainer.service
+for port in "${TRAINER_PORT:-9000}" "${DVWB_PORT:-9001}"; do
   if ! .venv/bin/python - "$port" <<'PY'
 import sys, time, urllib.request
 port=int(sys.argv[1]); url=f'http://127.0.0.1:{port}/'
@@ -61,5 +78,6 @@ raise SystemExit(1)
 PY
   then echo "Warning: port $port did not become ready; inspect journalctl --user -u forge-fracture-training-dvwb -n 80 (or trainer service)." >&2; fi
 done
-printf '\nTrainer: http://<KALI-VM-IP>:8001/\nDVWB:    http://<KALI-VM-IP>:8002/\nServices enabled. Closing the terminal will not stop them; with lingering disabled, keep your Kali user session logged in.\n'
+printf '\nTrainer: http://<KALI-VM-IP>:%s/\nDVWB:    http://<KALI-VM-IP>:%s/\nServices enabled. Closing the terminal will not stop them; with lingering disabled, keep your Kali user session logged in.\n' "${TRAINER_PORT:-9000}" "${DVWB_PORT:-9001}"
+printf 'Reset altered DVWB state: scripts/reset-training-state.sh\n'
 printf 'Use: systemctl --user status forge-fracture-training-trainer forge-fracture-training-dvwb\n'

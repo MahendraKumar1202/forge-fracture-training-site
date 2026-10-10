@@ -5,7 +5,7 @@ This repository contains two connected websites:
 1. **Trainer** — a field guide covering networking, Nmap, Zenmap, Wireshark, Linux commands, and four web vulnerability topics.
 2. **DVWB** — a separate FastAPI application using SQLAlchemy and SQLite. Participants enter through its login page and explore fictional event workflows. Its intentionally vulnerable exercises cover SQL injection, IDOR, path traversal, and broken access control. The President portal contains fictional confidential documents and double-octal encoded `AXA {…}` markers.
 
-The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 8001 and 8002. Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
+The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 9000 (trainer) and 9001 (DVWB). Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
 
 ## A. Run both sites locally on Windows
 
@@ -41,16 +41,16 @@ Keep two Command Prompt windows open. Run each command from the repository folde
 In **window 1**, start the trainer:
 
 ```cmd
-py -m uvicorn dvwb.trainer:app --host 127.0.0.1 --port 8001
+py -m uvicorn dvwb.trainer:app --host 127.0.0.1 --port 9000
 ```
 
 In **window 2**, start the DVWB:
 
 ```cmd
-py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 8002
+py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 9001
 ```
 
-Open [http://127.0.0.1:8001/](http://127.0.0.1:8001/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:8002/](http://127.0.0.1:8002/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
+Open [http://127.0.0.1:9000/](http://127.0.0.1:9000/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:9001/](http://127.0.0.1:9001/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
 
 The DVWB creates its local SQLite database at `dvwb/dvwb.sqlite3` on first launch in the manual local-development mode. Do not commit that runtime database. The Kali installer uses `instance/dvwb.sqlite3` by default.
 
@@ -69,7 +69,7 @@ cd ~/forge-fracture-training-site
 bash setup.sh
 ```
 
-Run `setup.sh` as your normal user, **not with sudo**. It creates `.venv`, installs dependencies, creates `.env` only if absent, sets up both user services, and starts them. It preserves an existing `.env`.
+Run `setup.sh` as your normal user, **not with sudo**. It creates `.venv`, installs dependencies, creates `.env` only if absent, installs both user services, and restarts them to apply configuration changes. Existing `.env` values are preserved except that the old stock defaults `8001`/`8002` are migrated to `9000`/`9001`; custom ports are retained.
 
 ### 2. Set the participant-reachable URL
 
@@ -79,42 +79,28 @@ Find the Kali VM's address with `ip -br addr`, then edit `.env`:
 nano .env
 ```
 
-Set `DVWB_PUBLIC_URL` to `http://YOUR-KALI-IP:8002/`, save, then restart both services so the trainer link and DVWB config are loaded:
+Set `DVWB_PUBLIC_URL` to `http://YOUR-KALI-IP:9001/`, save, then restart both services so the trainer link and DVWB config are loaded:
 
 ```bash
 systemctl --user restart forge-fracture-training-trainer forge-fracture-training-dvwb
 systemctl --user --no-pager --full status forge-fracture-training-trainer forge-fracture-training-dvwb
 ```
 
-Participant URLs are `http://YOUR-KALI-IP:8001/` for the field guide and `http://YOUR-KALI-IP:8002/` for the DVWB. Permit TCP 8001 and 8002 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data.
+Participant URLs are `http://YOUR-KALI-IP:9000/` for the field guide and `http://YOUR-KALI-IP:9001/` for the DVWB. Permit TCP 9000 and 9001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data.
 
 Built-in demo accounts are recreated when the DVWB starts: `participant.asha`, `participant.rohan`, `participant.kabir`, `participant.nila`, and `participant.dev` use password `utsav-learn`; `organizer.team` uses `portal-coach`. These are public training credentials, not secure user accounts.
 
-### 3. Reset the DVWB database before a workshop
+### 3. Reset the DVWB after participants alter it
 
-Stop both services, then run the reset utility from the repository root:
-
-```bash
-systemctl --user stop forge-fracture-training-dvwb forge-fracture-training-trainer
-./.venv/bin/python scripts/reset_database.py
-```
-
-The first run is a **dry run** and prints row counts without changing anything. If the database path and counts are correct, run the confirmed reset:
+**This is the one-command reset option:**
 
 ```bash
-./.venv/bin/python scripts/reset_database.py --confirm
+scripts/reset-training-state.sh
 ```
 
-The script makes a private SQLite backup under `instance/backups/`, verifies its integrity, then clears all rows. On service restart the app seeds its built-in fictional demo accounts, catalogue, records, dashboard views, and settings again. It does not delete files in `dvwb/training_files/` or source code. The backup can contain previous database state and credentials-related training records; protect it.
+It detects the training services, stops any that are running, displays the database and row counts, and asks you to type `RESET`. If confirmed, it creates and verifies a private pre-reset SQLite backup under `instance/backups/`, clears all database rows, and restarts the services that were running. On startup, the DVWB recreates its built-in fictional demo accounts, catalogue, records, dashboard views, and default settings. This undoes database changes made during exercises, such as modifying the global notice. It does not delete training documents or source code. Protect the backup because it contains the pre-reset database state.
 
-Start the services again:
-
-```bash
-systemctl --user start forge-fracture-training-dvwb forge-fracture-training-trainer
-systemctl --user status forge-fracture-training-dvwb forge-fracture-training-trainer
-```
-
-To stop them at the end of the event, run `systemctl --user stop forge-fracture-training-dvwb forge-fracture-training-trainer`. For logs, use `journalctl --user -u forge-fracture-training-dvwb -n 100 --no-pager` or the trainer service name.
+For manual inspection only, `./.venv/bin/python scripts/reset_database.py` performs a dry run and does not change anything. The reset command uses the same database path configured by `DVWB_DATABASE_URL` in `.env`.
 
 ### 4. Run tests locally
 
@@ -332,7 +318,7 @@ The trainer and DVWB service files in `/etc/systemd/system/`, the Nginx configur
 
 ## Troubleshooting
 
-- **Nginx returns 502:** check the systemd services and logs. The applications should listen locally on ports 8001 and 8002.
+- **Nginx returns 502 in the alternative Nginx deployment:** check the systemd services and logs. That separate deployment still uses loopback ports 8001 and 8002.
 - **Trainer opens but its button points to localhost or the wrong host:** check `DVWB_PUBLIC_URL` in `/etc/systemd/system/forge-fracture-trainer.service`, then run `sudo systemctl daemon-reload` and `sudo systemctl restart forge-fracture-trainer`.
 - **Trainer works but DVWB does not:** check internal DNS, the DVWB `server_name`, the participant subnet allowlist, and the browser URL.
 - **A service fails to start:** view its logs with `sudo journalctl -u forge-fracture-trainer -u forge-fracture-dvwb -n 100 --no-pager`.
