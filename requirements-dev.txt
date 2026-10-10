@@ -1,0 +1,3 @@
+-r dvwb/requirements.txt
+pytest
+httpx

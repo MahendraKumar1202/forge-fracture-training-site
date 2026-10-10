@@ -1,0 +1,15 @@
+[Unit]
+Description=Forge & Fracture security field guide
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/forge-fracture-training-site
+EnvironmentFile=%h/forge-fracture-training-site/.env
+ExecStart=%h/forge-fracture-training-site/.venv/bin/uvicorn dvwb.trainer:app --host ${TRAINER_HOST} --port ${TRAINER_PORT}
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+[Install]
+WantedBy=default.target

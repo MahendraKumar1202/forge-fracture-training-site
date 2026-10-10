@@ -5,7 +5,7 @@ This repository contains two connected websites:
 1. **Trainer** — a field guide covering networking, Nmap, Zenmap, Wireshark, Linux commands, and four web vulnerability topics.
 2. **DVWB** — a separate FastAPI application using SQLAlchemy and SQLite. Participants enter through its login page and explore fictional event workflows. Its intentionally vulnerable exercises cover SQL injection, IDOR, path traversal, and broken access control. The President portal contains fictional confidential documents and double-octal encoded `AXA {…}` markers.
 
-The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The Kali guide below keeps both application services on loopback and places Nginx in front of them; it also restricts the DVWB hostname to the participant subnet.
+The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 8001 and 8002. Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
 
 ## A. Run both sites locally on Windows
 
@@ -52,11 +52,82 @@ py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 8002
 
 Open [http://127.0.0.1:8001/](http://127.0.0.1:8001/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:8002/](http://127.0.0.1:8002/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
 
-The DVWB creates its local SQLite database at `dvwb/dvwb.sqlite3` on first launch. Do not commit that runtime database.
+The DVWB creates its local SQLite database at `dvwb/dvwb.sqlite3` on first launch in the manual local-development mode. Do not commit that runtime database. The Kali installer uses `instance/dvwb.sqlite3` by default.
 
-## B. Deploy both sites on Kali Linux
+## B. Quick Kali deployment (user services, direct HTTP)
 
-This guide installs the trainer and DVWB on one Kali server. Nginx routes two hostnames to two separate FastAPI services. The trainer's **Open the DVWB** button points participants to the DVWB hostname on that server.
+Use this when you want the same simple operational model as the main Forge & Fracture portal. The trainer and intentionally vulnerable DVWB run as two `systemd --user` services, so you do not need to keep a terminal open. With lingering disabled, keep the Kali user session logged in during the workshop. This mode binds both ports to the VM's network interfaces; firewall them to the isolated participant subnet and never forward them from the public internet.
+
+### 1. Install prerequisites and open the repository
+
+On Kali:
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip git
+cd ~/forge-fracture-training-site
+bash setup.sh
+```
+
+Run `setup.sh` as your normal user, **not with sudo**. It creates `.venv`, installs dependencies, creates `.env` only if absent, sets up both user services, and starts them. It preserves an existing `.env`.
+
+### 2. Set the participant-reachable URL
+
+Find the Kali VM's address with `ip -br addr`, then edit `.env`:
+
+```bash
+nano .env
+```
+
+Set `DVWB_PUBLIC_URL` to `http://YOUR-KALI-IP:8002/`, save, then restart both services so the trainer link and DVWB config are loaded:
+
+```bash
+systemctl --user restart forge-fracture-training-trainer forge-fracture-training-dvwb
+systemctl --user --no-pager --full status forge-fracture-training-trainer forge-fracture-training-dvwb
+```
+
+Participant URLs are `http://YOUR-KALI-IP:8001/` for the field guide and `http://YOUR-KALI-IP:8002/` for the DVWB. Permit TCP 8001 and 8002 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data.
+
+Built-in demo accounts are recreated when the DVWB starts: `participant.asha`, `participant.rohan`, `participant.kabir`, `participant.nila`, and `participant.dev` use password `utsav-learn`; `organizer.team` uses `portal-coach`. These are public training credentials, not secure user accounts.
+
+### 3. Reset the DVWB database before a workshop
+
+Stop both services, then run the reset utility from the repository root:
+
+```bash
+systemctl --user stop forge-fracture-training-dvwb forge-fracture-training-trainer
+./.venv/bin/python scripts/reset_database.py
+```
+
+The first run is a **dry run** and prints row counts without changing anything. If the database path and counts are correct, run the confirmed reset:
+
+```bash
+./.venv/bin/python scripts/reset_database.py --confirm
+```
+
+The script makes a private SQLite backup under `instance/backups/`, verifies its integrity, then clears all rows. On service restart the app seeds its built-in fictional demo accounts, catalogue, records, dashboard views, and settings again. It does not delete files in `dvwb/training_files/` or source code. The backup can contain previous database state and credentials-related training records; protect it.
+
+Start the services again:
+
+```bash
+systemctl --user start forge-fracture-training-dvwb forge-fracture-training-trainer
+systemctl --user status forge-fracture-training-dvwb forge-fracture-training-trainer
+```
+
+To stop them at the end of the event, run `systemctl --user stop forge-fracture-training-dvwb forge-fracture-training-trainer`. For logs, use `journalctl --user -u forge-fracture-training-dvwb -n 100 --no-pager` or the trainer service name.
+
+### 4. Run tests locally
+
+```bash
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest -q
+```
+
+The exploit tests use FastAPI's in-process test client and a disposable SQLite database. They verify the intentionally vulnerable SQL injection, IDOR, path traversal, and broken-access-control exercises; they do not attack a remote host.
+
+## C. Alternative Kali deployment (Nginx hostname-based, loopback services)
+
+This alternative guide installs the trainer and DVWB on one Kali server. Nginx routes two hostnames to two separate FastAPI services. The trainer's **Open the DVWB** button points participants to the DVWB hostname on that server.
 
 ### Before installation: choose your network values
 

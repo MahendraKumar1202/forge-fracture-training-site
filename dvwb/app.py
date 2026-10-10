@@ -402,7 +402,7 @@ def layout(content: str, user: Participant, active: str = "", lab: str = "") -> 
 def login_view(error: str = "") -> str:
     message = f'<p class="login-error">{esc(error)}</p>' if error else ""
     story = '<section class="login-story"><div class="brand-mark">UTSAV 2026<small>ACE × ASCIEE · PARTICIPANT PORTAL</small></div><div class="story-copy"><p class="eyebrow">PARTICIPANT SERVICES</p><h1>Your event, in one place.</h1><p>Review your registration, workshop selection, event resources and participant updates.</p></div><div class="story-foot">UTSAV 2026 · PARTICIPANT ACCESS</div></section>'
-    form = f'''<section class="login-side"><div class="login-card"><p class="eyebrow">ACCOUNT ACCESS</p><h2>Sign in to Utsav</h2><p class="muted">Enter your participant account details.</p>{message}<form action="/login" method="post"><label class="field">Username<input name="username" autocomplete="username"></label><label class="field">Password<input name="password" type="password" autocomplete="current-password"></label><button class="button wide">Sign in</button></form></div>{login_lab_help("sqli")}</section>'''
+    form = f'''<section class="login-side"><div class="login-card"><p class="eyebrow">ACCOUNT ACCESS</p><h2>Sign in to Utsav</h2><p class="muted">Enter your participant account details.</p>{message}<form action="/login" method="post"><label class="field">Username<input name="username" autocomplete="username"></label><label class="field">Password<input name="password" type="password" autocomplete="current-password"></label><button class="button wide">Sign in</button></form></div><p class="muted">SQL injection exercises are available in the store and service-centre searches after sign-in.</p></section>'''
     return chrome("Sign in", f'<main class="login-page">{story}{form}</main>')
 
 
@@ -415,15 +415,16 @@ def home(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(""), password: str = Form("")):
     with SessionLocal() as db:
-        # Intentionally vulnerable for the local SQL injection exercise.
-        statement = text(f"SELECT id FROM participants WHERE username = '{username}' AND password_hash LIKE '%{password}%'")
-        try:
-            row = db.execute(statement).first()
-        except Exception:
-            row = None
-        if not row:
+        # Authentication itself is kept functional and password-safe. The
+        # intentionally vulnerable SQL-injection exercises live in /store
+        # and /tools, where they operate only on fictional training records.
+        participant = db.query(Participant).filter_by(username=username).first()
+        valid = False
+        if participant and "$" in participant.password_hash:
+            salt, stored_digest = participant.password_hash.split("$", 1)
+            valid = secrets.compare_digest(digest(password, salt), stored_digest)
+        if not valid or participant is None:
             return HTMLResponse(login_view("Those details were not recognized."), status_code=401)
-        participant = db.get(Participant, row[0])
         token = secrets.token_urlsafe(32)
         db.add(PortalSession(token=token, participant_id=participant.id))
         db.commit()
