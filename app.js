@@ -1,6 +1,7 @@
 (function () {
   "use strict";
 
+
   var navGroups = [
     { label: "START HERE", items: [{ id: "overview", label: "Field guide", glyph: "00" }] },
     { label: "FOUNDATIONS", items: [
@@ -16,13 +17,10 @@
     ] },
     { label: "WEB VULNERABILITIES", items: [
       { id: "web", label: "Module overview", glyph: "06" },
-      { id: "demo-lab", label: "Practice Bench", glyph: "LAB" },
       { id: "v-sqli", label: "SQL injection", glyph: "a" },
       { id: "v-idor", label: "IDOR", glyph: "b" },
       { id: "v-traversal", label: "Path traversal", glyph: "c" },
       { id: "v-bac", label: "Broken access control", glyph: "d" },
-      { id: "v-xss", label: "Reflected XSS", glyph: "e" },
-      { id: "v-cmdi", label: "Command injection", glyph: "f" },
       { id: "compare", label: "Compare & review", glyph: "↔" }
     ] },
     { label: "REFERENCE", items: [{ id: "quickref", label: "Quick reference", glyph: "R" }] }
@@ -52,19 +50,19 @@
   ];
 
   var nmapLessons = [
-    { title: "Host discovery", purpose: "Check which devices respond within an approved scope without performing a port scan.", command: "nmap -sn <approved-scope>", observe: "Look for hosts reported as up. A missing response is not always proof that a device is offline." },
-    { title: "Basic port scan", purpose: "Check common TCP ports on one approved host.", command: "nmap <approved-host>", observe: "Open means a service is listening; closed means the host replied with no listener; filtered means a filter prevented a clear answer." },
-    { title: "Service and version detection", purpose: "Probe open ports to identify likely services and versions.", command: "nmap -sV <approved-host>", observe: "Treat service banners and version guesses as clues to verify, not definitive inventory." },
-    { title: "Operating system detection", purpose: "Estimate the operating system from how a host responds to probes.", command: "nmap -O <approved-host>", observe: "The result is a fingerprint-based estimate and may be inconclusive." },
-    { title: "Broader assessment", purpose: "Combine service checks and selected scripts for a more detailed view.", command: "nmap -A <approved-host>", observe: "This creates more traffic and can take longer. Use it only when the written scope permits it." },
-    { title: "All TCP ports", purpose: "Check the full TCP port range when the approved exercise calls for it.", command: "nmap -p- <approved-host>", observe: "A complete range check takes longer than the default scan." },
-    { title: "Verbose output", purpose: "Show additional progress and detail while a scan runs.", command: "nmap -v <approved-host>", observe: "Useful for understanding scan progress; it does not change the authorized scope." }
+    { title: "Host discovery", purpose: "Check which devices respond within an approved scope without performing a port scan.", command: "nmap -sn <approved-scope>", syntax: "nmap starts the scanner; -sn disables the port-scan phase and asks for host discovery; the final value is the authorized network range or host list.", why: "Use this first when the question is which in-scope systems appear reachable. It is narrower than checking every port, though discovery probes can still be visible to network controls.", observe: "Look for hosts reported as up. A missing response is not always proof that a device is offline: firewalls, routing, or disabled discovery responses can hide a live host." },
+    { title: "Basic port scan", purpose: "Check common TCP ports on one approved host.", command: "nmap <approved-host>", syntax: "The target placeholder is replaced only with a host in the written scope. With no extra scan option, Nmap checks its default set of commonly used TCP ports.", why: "Use it to establish a modest first view of exposed TCP services before deciding whether a more specific check is justified.", observe: "Open means a service is listening; closed means the host replied with no listener; filtered means a filter prevented a clear answer. These are network observations, not vulnerability conclusions." },
+    { title: "Service and version detection", purpose: "Probe open ports to identify likely services and versions.", command: "nmap -sV <approved-host>", syntax: "-sV enables service/version probes against discovered open ports; the target remains limited to the approved host.", why: "Use it when knowing the likely service helps an owner compare scan evidence with the approved asset inventory or choose a maintenance check.", observe: "Treat service banners and version guesses as clues to verify, not definitive inventory. Probes add traffic and some services may respond unusually." },
+    { title: "Operating system detection", purpose: "Estimate the operating system from how a host responds to probes.", command: "nmap -O <approved-host>", syntax: "-O requests operating-system fingerprinting; Nmap compares network response characteristics with known patterns.", why: "Use it only when operating-system context is relevant and the scan is permitted; owner-provided inventory is usually more authoritative.", observe: "The result is a fingerprint-based estimate and may be inconclusive, especially through a firewall, proxy, or unusual network path." },
+    { title: "Broader assessment", purpose: "Combine service checks and selected scripts for a more detailed view.", command: "nmap -A <approved-host>", syntax: "-A enables several higher-detail features, including OS detection, version detection, default scripts, and traceroute; the target is the authorized host.", why: "Use only when the written scope specifically permits the additional probes and detail. A broad option is not a default starting point.", observe: "This creates more traffic and can take longer. Review the enabled behavior and stop if it causes unexpected service impact." },
+    { title: "All TCP ports", purpose: "Check the full TCP port range when the approved exercise calls for it.", command: "nmap -p- <approved-host>", syntax: "-p selects ports and - means the full TCP port range; the target is the in-scope host.", why: "Use it when the exercise question requires checking beyond Nmap's common-port default. A complete sweep is more work and traffic, so have a clear reason.", observe: "A complete range check takes longer than the default scan and can create more connection attempts." },
+    { title: "Verbose output", purpose: "Show additional progress and detail while a scan runs.", command: "nmap -v <approved-host>", syntax: "-v requests more status output; it changes how much progress detail is printed, not which target is authorized.", why: "Use it when you need to understand what the scan is currently doing or diagnose a long-running permitted scan.", observe: "Verbose output helps follow progress; it does not make a scan more accurate or change the authorized scope." }
   ];
 
   var linuxGroups = [
     { title: "Navigation", rows: [
       ["pwd", "Show the current directory", "Prints the path of the working directory."],
-      ["ls -la", "List files", "Shows hidden entries and detailed file information."],
+      ["ls -la", "List files", "Lists directory entries, including hidden names, with details such as permissions, owner, size, and modification time."],
       ["cd ..", "Move to the parent directory", "Use a relative path to move between folders."],
       ["cd ~/practice", "Move using a home-relative path", "The tilde expands to the current user's home directory in common shells."],
       ["realpath notes.txt", "Resolve a path", "Shows the normalized absolute path; inspect it before scripts or file operations."],
@@ -84,17 +82,22 @@
       ["xxd -l 64 sample.bin", "Inspect a file header", "Shows a short hexadecimal and text view of the first bytes."]
     ] },
     { title: "View files", rows: [
-      ["cat notes.txt", "Print a short file", "Use for small files where all content fits on screen."],
+      ["cat notes.txt", "Print a short file", "Reads the file and writes its contents to standard output. cat can join multiple files, but this example uses one small text file."],
       ["less notes.txt", "Read a longer file", "Press q to exit; use / to search within the file."],
       ["head -n 10 notes.txt", "Show the first lines", "Useful for checking a file's opening structure."],
       ["tail -n 10 notes.txt", "Show the last lines", "tail -f can follow a changing log."],
       ["wc -l app.log", "Count lines", "Useful for a quick size check before reading or filtering a large file."]
     ] },
     { title: "Search", rows: [
-      ["grep -i \"error\" app.log", "Find matching text", "The -i option ignores letter case."],
+      ["grep -i \"error\" app.log", "Find matching text", "Searches app.log and prints lines containing error, treating uppercase and lowercase letters as equivalent because of -i."],
       ["find . -name \"*.log\"", "Find files by name", "The dot starts the search in the current directory."],
-      ["grep -n \"denied\" app.log", "Show matching line numbers", "Line numbers make it easier to revisit a finding in a larger file."],
+      ["grep -n \"denied\" app.log", "Show matching line numbers", "Searches app.log for denied and prints each matching line with its line number because of -n."],
       ["grep -R \"TODO\" ./src", "Search a folder tree", "Recursive search examines files below the chosen directory; keep the scope narrow."]
+    ] },
+    { title: "Text processing and shell output", rows: [
+      ["sed -n '1,10p' app.log", "Display selected lines", "sed applies a text-processing instruction to each input line. Here, -n suppresses automatic printing and 1,10p explicitly prints lines one through ten. The source file is not changed."],
+      ["tr '[:lower:]' '[:upper:]' < names.txt", "Convert lowercase text to uppercase", "tr translates characters from the first set to corresponding characters in the second set. Input redirection supplies names.txt as standard input; the transformed text is printed to standard output."],
+      ["echo \"Review complete\"", "Print a short message", "echo writes its argument followed by a newline to standard output. It is useful for simple status messages; it is not a substitute for a program that safely edits structured files."]
     ] },
     { title: "Permissions", rows: [
       ["ls -l", "Inspect permissions", "Read/write/execute bits are shown for owner, group, and others."],
@@ -109,7 +112,6 @@
       ["ip route show default", "Show the default gateway", "Displays the default route and its next-hop gateway when one is configured."],
       ["ip -6 route", "View IPv6 routes", "Shows the IPv6 routing table, including a configured default route."],
       ["ip route get <approved-ip>", "Check a route decision", "Shows the interface and next hop the local kernel would use for a permitted destination."],
-      ["ip neigh", "View local neighbor entries", "Shows cached link-layer mappings for nearby IPv4 or IPv6 devices."],
       ["getent hosts <lab-name>", "Check configured name resolution", "Looks up a name using the host's configured name-service sources."],
       ["dig <lab-name>", "Inspect a DNS answer", "Queries DNS and displays record and resolver details; dig may need separate installation."],
       ["ping -c 4 <approved-host>", "Check basic reachability", "Sends four ICMP echo requests; a blocked response does not prove a host is offline."],
@@ -127,6 +129,17 @@
       ["journalctl -n 20", "Read recent system journal entries", "Provides recent system messages on systems using systemd; logs may contain sensitive details."],
       ["python3 --version", "Check Python availability", "Confirms whether Python 3 is installed before using a supplied analysis script."],
       ["history", "Review recent shell commands", "Helps reproduce your own work; inspect before sharing because it may contain sensitive values."]
+    ] },
+    { title: "SSH (Secure Shell)", rows: [
+      ["ssh user@<approved-host>", "Connect with the SSH client", "Starts an encrypted remote terminal session to the approved host as the named account. The remote SSH server must be running and the account must be authorized."],
+      ["ssh -p 2222 user@<approved-host>", "Connect to a specified SSH port", "Uses TCP port 2222 for this connection instead of the usual SSH port 22. The server must be configured to listen on that port."],
+      ["ssh -i ~/.ssh/id_ed25519 user@<approved-host>", "Select a private key for authentication", "Tells the SSH client which private identity key to offer. Keep the private key secret and protected; only share the matching public key with the server owner."],
+      ["ssh -v user@<approved-host>", "Review connection diagnostics", "Prints additional client-side connection and authentication details. Output can contain usernames, hostnames, or paths, so review it before sharing."],
+      ["ssh-keygen -t ed25519", "Create an SSH key pair", "Creates a private key and a matching public key using the Ed25519 algorithm. Protect the private key with a passphrase and never send it to another person."],
+      ["ssh-keygen -lf ~/.ssh/id_ed25519.pub", "Display a public-key fingerprint", "Shows a short fingerprint derived from a public key so an administrator can compare its identity without revealing the private key."],
+      ["sshd -t", "Check SSH server configuration syntax", "Asks the SSH server program to validate its configuration file and report syntax errors without starting a new service."],
+      ["systemctl status ssh", "Inspect the SSH server service", "Shows whether the SSH server service is running and recent service status. Some Linux distributions name this service sshd instead of ssh."],
+      ["systemctl status sshd", "Inspect the SSH server service on some distributions", "Checks the service name used by distributions that call the SSH daemon sshd. The command requires a systemd-based machine and may be unavailable in a restricted shell."]
     ] }
   ];
 
@@ -157,6 +170,9 @@
     "find . -name \"*.log\"": "Use it to locate relevant log files under the current supplied folder.",
     "grep -n \"denied\" app.log": "Use it to find matching lines and preserve line numbers for later review.",
     "grep -R \"TODO\" ./src": "Use it to search a scoped source folder for markers that may explain unfinished behavior.",
+    "sed -n '1,10p' app.log": "Use it to display a limited range of lines when reviewing a long file without changing the original.",
+    "tr '[:lower:]' '[:upper:]' < names.txt": "Use it to transform a stream of text characters; input redirection lets tr process a file while preserving the original.",
+    "echo \"Review complete\"": "Use it to print a simple status message or demonstrate standard output; do not use it as a general file-editing method.",
     "ls -l": "Use it to review owner, group, and permission bits before running or editing a file.",
     "chmod u+x script.sh": "Use it only when a trusted, in-scope script needs its owner-execute bit set; inspect it first.",
     "umask": "Use it to understand which permissions are removed from newly created files by default.",
@@ -167,7 +183,6 @@
     "ip route show default": "Use it to identify the gateway and interface that receive traffic for destinations without a more-specific route.",
     "ip -6 route": "Use it to inspect IPv6 routes separately from the IPv4 routing table.",
     "ip route get <approved-ip>": "Use it to ask which interface and next hop the local system would use for one in-scope address.",
-    "ip neigh": "Use it to inspect local neighbor resolution when a device on the same link cannot be reached.",
     "getent hosts <lab-name>": "Use it to check the configured name-resolution path used by many local applications.",
     "dig <lab-name>": "Use it when DNS record details or resolver responses are needed beyond a simple lookup.",
     "ping -c 4 <approved-host>": "Use it as a small reachability clue; firewalls may block ICMP, so interpret no reply cautiously.",
@@ -182,7 +197,16 @@
     "ps -ef": "Use it to review processes on your own lab machine when identifying an active service.",
     "journalctl -n 20": "Use it to inspect recent system messages when diagnosing a service you administer.",
     "python3 --version": "Use it to confirm the interpreter version before using a trusted supplied helper.",
-    "history": "Use it to reproduce your own recent work; inspect and redact it before sharing."
+    "history": "Use it to reproduce your own recent work; inspect and redact it before sharing.",
+    "ssh user@<approved-host>": "Use the SSH client when an authorized task requires an encrypted remote terminal session; first confirm the destination, account, and access method with the system owner.",
+    "ssh -p 2222 user@<approved-host>": "Use a port option only when the server owner has documented a non-default SSH port for the approved host.",
+    "ssh -i ~/.ssh/id_ed25519 user@<approved-host>": "Use an explicit identity when the authorized account is associated with a particular key; protect the private key and do not copy it into shared notes.",
+    "ssh -v user@<approved-host>": "Use verbose output to diagnose a permitted connection problem; redact account, host, and local path details before sharing logs.",
+    "ssh-keygen -t ed25519": "Use it to create a new key pair for an account you control; protect the private half and provide only the public half through the approved setup process.",
+    "ssh-keygen -lf ~/.ssh/id_ed25519.pub": "Use it to compare a public-key fingerprint with the one recorded by the authorized administrator.",
+    "sshd -t": "Use it before an authorized server configuration change to catch syntax errors without restarting the service.",
+    "systemctl status ssh": "Use it to inspect the SSH server service on a systemd-based machine; the unit name varies by distribution.",
+    "systemctl status sshd": "Use it when the distribution names the server unit sshd; it is a read-only status check."
   };
 
   var vulnerabilities = [
@@ -190,6 +214,12 @@
       id: "sqli", route: "v-sqli", name: "SQL Injection", category: "Injection", impact: "High",
       one: "Input changes the meaning of a database query.",
       what: "SQL injection occurs when an application combines untrusted input with query text. The database can then interpret part of that input as instructions instead of as a value.",
+      extra: [
+        ["How to spot it", "Look for values that alter result counts, change a filter, or trigger database errors. A normal search term should be treated as a value, even when it contains quotes or operators."],
+        ["Why the query changes", "In a vulnerable query, the application builds SQL text before sending it to the database. Special characters can close a value and introduce SQL operators. In a defended query, bound parameters are sent as data and cannot rewrite the statement."],
+        ["What to compare in the DVWB", "Use the same input in both buttons. Compare returned fictional catalog rows and the result message. The learning point is whether the database interprets the input as part of the query structure."],
+        ["Useful distinction", "Input validation can reject values that violate business rules, but it does not replace parameterized queries. Escaping characters by hand is fragile across database engines and query contexts."]
+      ],
       surfaces: [
         ["Authentication and account forms", "User-entered values that are looked up in a database."],
         ["Search and filters", "Keywords, categories, sort choices, and other values used to build queries."],
@@ -215,6 +245,12 @@
       id: "idor", route: "v-idor", name: "IDOR", full: "Insecure Direct Object Reference", category: "Authorization", impact: "High",
       one: "A record identifier is accepted without checking who may access that record.",
       what: "IDOR is an authorization failure in which an application uses a direct object reference, such as a record identifier, but fails to confirm that the current user is allowed to read or change that object.",
+      extra: [
+        ["Authentication is not authorization", "A valid session tells the server who is making a request. It does not grant access to every record whose identifier the requester can guess or obtain."],
+        ["Where to look", "Inspect endpoints that accept IDs in URLs, query strings, JSON bodies, or hidden form fields. Check reads and state changes separately; a protected view can still have an unprotected export or update route."],
+        ["What to compare in the DVWB", "Choose Member A and request record 2, which belongs to Member B. Compare the vulnerable response with the owner-scoped response, then switch users and repeat."],
+        ["Reliable control", "Derive the user identity from the server-side session and include ownership or sharing permission in the database lookup for every object operation."]
+      ],
       surfaces: [
         ["Personal records", "Profiles, orders, invoices, or documents selected by an identifier."],
         ["Download features", "A resource is selected by an ID without an ownership check."],
@@ -240,6 +276,12 @@
       id: "traversal", route: "v-traversal", name: "Path Traversal", category: "File handling", impact: "High",
       one: "A file name can escape the folder the application intended to expose.",
       what: "Path traversal occurs when an application builds a filesystem path from untrusted input without ensuring that the resolved path remains inside an approved directory.",
+      extra: [
+        ["How it happens", "A feature starts with an approved base folder, then combines it with a request value. Parent-directory segments or alternate separators can move the resolved path outside the intended folder."],
+        ["Common entry points", "File previews, downloads, image lookups, template selectors, and language/resource loaders are worth reviewing when a request influences a file name or path."],
+        ["What to compare in the DVWB", "Try the supplied path to a fictional private note. The vulnerable route can return that synthetic note; the defended route checks the normalized path stays under the public folder."],
+        ["Reliable control", "Prefer mapping an allowed file ID to a server-controlled path. If paths must be accepted, decode and canonicalize first, then verify containment and restrict the service account’s file permissions."]
+      ],
       surfaces: [
         ["Downloads and previews", "A feature selects a file from a supplied name."],
         ["Image and media handling", "A user-controlled value is mapped to a local file."],
@@ -265,6 +307,12 @@
       id: "bac", route: "v-bac", name: "Broken Access Control", category: "Authorization", impact: "High",
       one: "The server does not consistently enforce what each user may do or see.",
       what: "Broken access control is a broad class of authorization failures. Authentication identifies a user; authorization must separately decide whether that user may perform each requested action.",
+      extra: [
+        ["The core question", "For each request, ask whether this user may perform this exact action on this exact resource right now. A hidden button or an obscure URL does not enforce permission."],
+        ["Common patterns", "Examples include ordinary users reaching admin routes directly, changing another user’s settings, changing their role through a request field, or using an alternate HTTP method that skips a check."],
+        ["What to compare in the DVWB", "Try the banner update as a student and as an instructor. Compare the vulnerable route, which trusts sign-in alone, with the defended route’s server-side role decision."],
+        ["Reliable control", "Centralize server-side authorization checks, deny by default, and test each sensitive action through direct requests as well as through the visible interface."]
+      ],
       surfaces: [
         ["Administrative functions", "Privileged pages or actions that rely on interface visibility."],
         ["State-changing operations", "Updates, exports, deletion, or configuration changes without a server-side permission check."],
@@ -285,116 +333,14 @@
       safer: "requirePermission(user, \"records:manage\")\nrunPrivilegedAction()",
       check: ["What is the difference between authentication and authorization?", "Authentication identifies the user; authorization decides which actions and data are allowed.", "Is hiding a control enough?", "No. The server must reject an unauthorized request."],
       control: "Server-side permission checks"
-    },
-    {
-      id: "xss", route: "v-xss", name: "Reflected XSS", full: "Reflected Cross-Site Scripting", category: "Injection", impact: "Medium",
-      one: "Untrusted request content is returned in a page and interpreted by the browser as markup or script.",
-      what: "Reflected cross-site scripting occurs when an application includes request data in an immediate response without context-appropriate output encoding. The browser may interpret that data as part of the page rather than as text.",
-      surfaces: [
-        ["Search and status messages", "A page repeats a search term or message from the current request."],
-        ["Validation responses", "A form redisplays a submitted value after an error."],
-        ["Page titles and labels", "Request values appear in HTML attributes or text nodes."],
-        ["Diagnostics", "Request metadata is included in a response or diagnostic page."]
-      ],
-      flow: [
-        ["Request carries text", "A value enters the application through a request."],
-        ["The response reflects it", "The server inserts the value into HTML."],
-        ["Output context is not encoded", "The browser receives characters with their structural meaning intact."],
-        ["The browser interprets content", "The response can alter the page in the site's security context."]
-      ],
-      focus: ["Find where request text is reflected into a response.", "Check that output encoding matches its HTML, attribute, or script context.", "Use an inert local sample and confirm the browser treats it as text."],
-      why: ["Change what a user sees on a trusted page.", "Perform actions as the user when other protections are weak.", "Expose page data available to the browser context."],
-      fix: ["Use template-based output encoding for the exact output context.", "Avoid constructing HTML strings from untrusted input.", "Add Content Security Policy and secure cookie settings as extra layers."],
-      misses: ["Using HTML encoding for a different output context.", "Relying only on input filtering.", "Disabling safe template defaults."],
-      unsafe: "html = \"<p>\" + userInput + \"</p>\"\nrenderHTML(html)",
-      safer: "renderText(\"p\", userInput)\n// Template encodes text for HTML output",
-      check: ["What determines the right output encoding?", "The context where the value is inserted.", "Should user text be assembled into HTML strings?", "No. Use a safe text or template API that encodes output."],
-      control: "Context-aware output encoding"
-    },
-    {
-      id: "cmdi", route: "v-cmdi", name: "Command Injection", category: "Injection", impact: "High",
-      one: "Input changes how an operating-system command is assembled or interpreted.",
-      what: "Command injection can occur when an application passes untrusted input into a shell command string. Shell syntax may then cause the input to change what the server executes.",
-      surfaces: [
-        ["Network diagnostics", "A web feature wraps a system utility instead of using a library."],
-        ["File converters", "A service starts a command-line converter using request data."],
-        ["Archive and backup tools", "A workflow builds operating-system commands from file or option values."],
-        ["Maintenance controls", "Administrative features invoke scripts or utilities."]
-      ],
-      flow: [
-        ["A feature accepts input", "A value is intended to be an argument to a utility."],
-        ["The application builds a command string", "Untrusted input is concatenated with command text."],
-        ["A shell parses the string", "The shell interprets control syntax instead of treating the value as one argument."],
-        ["The server runs unintended work", "The process acts with the privileges available to the application."]
-      ],
-      focus: ["Identify features that start operating-system processes.", "Prefer libraries; otherwise check how arguments are separated and validated.", "Use a mock process in an isolated lab, never on a shared or production server."],
-      why: ["Run unintended operations on the server.", "Access files or services available to the application process.", "Escalate the effect of an application flaw."],
-      fix: ["Use a library or pass structured arguments to a fixed executable without a shell.", "Validate against a narrow allow-list and reject unexpected input.", "Run the service with minimal operating-system permissions."],
-      misses: ["Blocking only a few known separator characters.", "Validating only in browser code.", "Running the application process with administrator privileges."],
-      unsafe: "command = \"lookup \" + userInput\nrunShell(command)",
-      safer: "runProcess(\n  executable = \"lookup\",\n  arguments = [validatedValue],\n  shell = false\n)",
-      check: ["What creates the parsing risk?", "Putting untrusted input into a shell command string.", "What is safer when a process is necessary?", "Use a fixed executable and pass validated arguments separately without a shell."],
-      control: "Structured process arguments"
-    }
-  ];
+    },  ];
 
   var lessonGuides = {
-    sqli: {
-      analogy: "A form value should go into a labeled envelope for the database. String-built SQL tears open the envelope and lets the value rewrite the instructions.",
-      context: "A toy course catalog searches a title using a query assembled from one text field.",
-      sample: "' OR '1'='1' --",
-      parts: ["The first quote closes the application's text value.", "OR adds a second condition; '1'='1' is true for every row.", "The comment marker makes the remainder of this toy query irrelevant."],
-      vulnerable: "The toy query's meaning changes, so the practice catalog shows all three synthetic courses.",
-      defended: "A parameterized query treats the complete sample as one title value, so the catalog finds no matching course.",
-      steps: ["Start with the ordinary sample and observe the small result set.", "Keep the same synthetic input and compare the vulnerable and defended policies.", "Notice whether the database query structure changes, not just whether an error appears.", "Reset the sample and explain why parameters preserve the query structure."]
-    },
-    idor: {
-      analogy: "A library card number identifies a book record; it does not prove that the person holding the number may view another member's checkout history.",
-      context: "Two fictional learners have separate records in an in-page practice service.",
-      sample: "record-102",
-      parts: ["The request names a record directly.", "The server must derive the signed-in learner from the session.", "It must check ownership or an explicit sharing rule before returning the record."],
-      vulnerable: "The toy service returns the synthetic record even though it belongs to the other learner.",
-      defended: "The per-record permission check denies the request and leaves the other learner's sample private.",
-      steps: ["Use only the two fictional accounts and records supplied by the lesson.", "Compare an allowed record with the other sample record.", "Check the response for read, edit, and delete actions separately.", "Do not enumerate identifiers or try this against real accounts."]
-    },
-    traversal: {
-      analogy: "A room number should select a room inside the training building. A path that climbs parent folders can leave the intended building unless the resolved location is checked.",
-      context: "The simulator contains a tiny in-memory folder with a public handout and a synthetic private note; it never reads the device's files.",
-      sample: "../private/coach-notes.txt",
-      parts: ["The two dots mean move to a parent folder.", "The slash continues into another folder.", "The important check is whether the final resolved file remains inside the approved practice folder."],
-      vulnerable: "The in-memory model resolves the sample outside the public folder and displays its fictional note.",
-      defended: "The containment rule rejects a resolved location outside the approved folder.",
-      steps: ["Observe the normal public handout first.", "Compare the same sample under both policies.", "Look for a containment decision after path normalization.", "Keep the exercise inside this synthetic model; never substitute a real system path."]
-    },
-    bac: {
-      analogy: "Hiding the staff-room button does not lock the staff-room door. The server must check the visitor's permission whenever the action is requested.",
-      context: "A fictional learner requests a course-settings action that is reserved for instructors.",
-      sample: "Learner role → manage course settings",
-      parts: ["Authentication identifies the learner.", "The requested action changes protected course settings.", "Authorization must compare the learner's server-side permissions with that action."],
-      vulnerable: "The toy endpoint accepts the action because it checks only that a user is signed in.",
-      defended: "The server-side role policy returns a denied response for the learner and permits the instructor sample.",
-      steps: ["Compare the learner and instructor roles using the supplied toy action.", "Try the conceptual action through the direct request view, not just the navigation menu.", "Check read and change actions independently.", "Confirm the decision happens on the server for every request."]
-    },
-    xss: {
-      analogy: "A notice board should print a student's words as text. If the page treats those words as markup, the words can become instructions to the browser.",
-      context: "A search page reflects the query back into a result heading. This lesson displays all examples inertly and never runs browser script.",
-      sample: "<script>alert('training')</script>",
-      parts: ["The opening and closing tags mark a script element in HTML.", "The text between them is JavaScript in a browser that interprets it as markup.", "Safe output encoding shows the characters literally instead of creating an element."],
-      vulnerable: "The toy page marks the response as untrusted markup and shows a simulated browser alert panel; no script executes.",
-      defended: "The page treats the value as text, so the tag characters appear literally in the result.",
-      steps: ["Use only the inert sample shown here and watch the local toy page response.", "Switch policies and compare a simulated markup interpretation with literal text.", "Inspect the response context: text, attribute, and script contexts need different handling.", "Remember reflected input appears in the immediate response; it is different from stored XSS."]
-    },
-    cmdi: {
-      analogy: "A utility should receive one labeled argument. Passing a sentence through a shell is like asking an interpreter to decide whether punctuation means part of the value or a second instruction.",
-      context: "A mock status utility accepts a value in an in-page model. No operating-system command is started.",
-      sample: "status; whoami",
-      parts: ["The semicolon is a shell command separator.", "Text after it could become a second command if input is placed in a shell string.", "Structured argument passing keeps the whole value as one argument to a fixed program."],
-      vulnerable: "The simulator labels the input as two parsed command segments and displays fictional output only.",
-      defended: "The fixed-argument model treats the complete value as one argument and rejects it as an unexpected status value.",
-      steps: ["Compare the displayed parse in the two policies; neither starts a process.", "Identify which punctuation the shell would interpret as syntax.", "Review whether the application uses a library or a fixed executable with separate arguments.", "Keep any real process testing inside a written, isolated lab scope."]
-    }
+    sqli: { analogy: "A form value should be treated as data, not allowed to rewrite database instructions.", context: "A fictional catalog search and login use database queries.", sample: "' OR '1'='1' --", parts: ["A quote closes the original text value.", "OR adds a condition that is true for every row.", "The comment marker hides the rest of the example query."], vulnerable: "The fictional query returns records beyond the intended match.", defended: "A parameterized query treats the complete input as a value.", steps: ["Compare ordinary search with the supplied input.", "Observe the fictional results.", "Explain why parameter binding preserves query structure."] },
+    idor: { analogy: "Knowing a record number does not prove permission to view the record.", context: "Two fictional participants own separate records.", sample: "2", parts: ["The request identifies a record.", "The server identifies the signed-in participant.", "The server must verify ownership before returning the record."], vulnerable: "The record is returned without checking its owner.", defended: "The lookup is scoped to records the signed-in participant may access.", steps: ["Open a record you own.", "Change the numeric identifier to another sample record.", "Compare the response and ownership check."] },
+    traversal: { analogy: "A path selector should remain within its approved folder.", context: "The exercise uses fictional documents and never reads machine files.", sample: "../private/organizer-runbook.txt", parts: ["The parent-directory segment moves up one folder.", "The next segment selects a different folder.", "The resolved path must be checked against the approved base."], vulnerable: "The synthetic private note is returned.", defended: "A containment check rejects paths outside the public folder.", steps: ["Open a normal public document.", "Try the supplied synthetic path.", "Compare the resolved location with the approved folder."] },
+    bac: { analogy: "Hiding a control does not protect the action behind it.", context: "A participant requests an organizer-only settings change.", sample: "Participant → update portal notice", parts: ["Authentication identifies the user.", "The request attempts a privileged action.", "Authorization must check permission on the server."], vulnerable: "A signed-in participant can update the shared notice.", defended: "The server checks the organizer role for the update.", steps: ["View the settings as a participant.", "Submit the fictional update request.", "Compare the authorization decision for each role."] }
   };
-
   var demoConfigs = {
     sqli: {
       kind: "text", label: "Sample query value", sample: "' OR '1'='1' --",
@@ -416,16 +362,6 @@
       pageName: "Site settings", pagePath: "/admin/settings", brand: "PageCraft", theme: "admin", navigation: "DASHBOARD  ·  PAGES  ·  USERS  ·  SETTINGS",
       hint: "Try changing site settings as Student or Instructor. The roles and permission policy exist only in this page."
     },
-    xss: {
-      kind: "text", label: "Text reflected by a page", sample: "<script>alert('training')</script>",
-      pageName: "Community search", pagePath: "/community/search", brand: "Forumly", theme: "forum", navigation: "TOPICS  ·  MEMBERS  ·  GUIDELINES  ·  SIGN IN",
-      hint: "The sample shows a script tag commonly used to demonstrate reflected XSS. It stays inert text; the simulator never inserts HTML or runs JavaScript."
-    },
-    cmdi: {
-      kind: "text", label: "Utility argument", sample: "status; whoami",
-      pageName: "Service health", pagePath: "/console/services", brand: "HostPanel", theme: "host", navigation: "OVERVIEW  ·  SERVICES  ·  LOGS  ·  SETTINGS",
-      hint: "The sample includes a shell command separator. Observe how an unsafe shell string can split it, then compare a fixed-argument policy. No process starts."
-    }
   };
 
   var byId = {};
@@ -434,11 +370,17 @@
   function esc(value) {
     return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
+
+  var dvwbUrl = (document.querySelector('meta[name="dvwb-url"]') || {}).content || "dvwb/";
+  var dvwbLink = '<a class="btn" href="' + esc(dvwbUrl) + '" target="_blank" rel="noopener">Open the DVWB <span aria-hidden="true">↗</span></a>';
   function list(items, className) {
     return '<ul class="check-list ' + (className || "") + '">' + items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
   }
   function codeCard(title, code) {
     return '<div class="code-card"><div class="code-label"><span>' + esc(title) + '</span><button class="copy-btn" type="button">Copy</button></div><pre><code>' + esc(code) + "</code></pre></div>";
+  }
+  function commandGuide(command, what, why, syntax) {
+    return codeCard("Example command", command) + '<div class="command-notes"><p><strong>What it does:</strong> ' + esc(what) + '</p><p><strong>Why use it:</strong> ' + esc(why) + '</p>' + (syntax ? '<p><strong>Read the syntax:</strong> ' + esc(syntax) + '</p>' : '') + '</div>';
   }
   function tabs(group, unsafe, safer) {
     return '<div class="code-tabs" role="tablist" aria-label="Code pattern comparison">' +
@@ -456,7 +398,37 @@
     return '<section class="lesson-block"><h2><span>' + num + "</span>" + title + "</h2>" + body + "</section>";
   }
   function infoDisclosure(title, body) {
-    return '<details><summary>' + title + '</summary><div class="details-body">' + body + '</div></details>';
+    return '<section class="open-detail"><h3>' + title + '</h3><div class="details-body">' + body + '</div></section>';
+  }
+
+  var lessonContext = {
+    net: ["A network conversation moves through linked decisions: interface, address, route, name resolution, transport, and application protocol.", "Use the chapter sequence to move from basic addressing toward interpreting a real response in an approved lab.", "Keep a short record of the question, command or observation, result, and remaining uncertainty."],
+    "net-addressing": ["Keep address, prefix, and interface together in notes; each changes how a destination is interpreted.", "Use the local routing decision to distinguish direct delivery from traffic sent to a gateway.", "An address that appears private is still in scope only when the system owner has authorized the exercise."],
+    "net-routing": ["A routing table is the system’s decision list, not a map of every network path beyond the next hop.", "Check one destination at a time and record the selected interface and next hop.", "A missing diagnostic reply is inconclusive when routers or firewalls suppress those messages."],
+    "net-services": ["Name resolution, transport reachability, and an application response are separate observations.", "Record the resolved address, protocol, port, and response independently before drawing a conclusion.", "Port numbers suggest conventions; confirm the service from authorized evidence."],
+    "net-troubleshooting": ["Start at the local interface and move outward one layer at a time.", "Change one variable between checks so each result narrows the likely cause.", "A timeout can come from filtering, routing, a stopped service, or an incorrect name; it does not identify the cause by itself."],
+    nmap: ["Choose the smallest scan that answers the authorized question; broader detection creates more traffic and can affect fragile services.", "Read open, closed, and filtered as probe outcomes, not as vulnerability ratings.", "Version and operating-system detection are estimates that should be checked against trusted inventory."],
+    zen: ["A profile is a saved set of Nmap options; inspect the generated command before a scan starts.", "The graphical interface does not change the traffic, authorization boundary, or impact of those options.", "Save the target, profile, time, and results together so the workflow can be reviewed later."],
+    ws: ["A packet capture records what was visible at one observation point and time.", "A display filter changes the view of recorded packets; it does not remove packets from the capture.", "Treat payloads and metadata as potentially sensitive evidence and follow the lab’s retention rules."],
+    linux: ["Confirm the working directory and exact target before using a relative path or a command that changes files.", "Read command options and output before composing pipelines or redirections.", "The command examples use a restricted trainer context; use only the commands and paths approved for your lab."],
+    web: ["A web weakness is a failure to enforce a trust boundary in the server’s handling of data, objects, files, or actions.", "Read each field note for the underlying cause and control, then apply that understanding to the separate fictional portal.", "The four categories covered here are SQL injection, IDOR, path traversal, and broken access control."],
+    web: ["Trace each request from the browser-controlled value to the server-side decision and response.", "A realistic test changes one input or identifier at a time and compares the returned behavior with the expected boundary.", "Use only the isolated DVWB for hands-on attempts; the trainer explains the concepts and controls."],
+    "v-sqli": ["SQL injection happens when untrusted text is parsed as part of SQL instructions instead of remaining a bound value.", "Observe whether a controlled search changes result logic or exposes a database error; keep the exercise data synthetic.", "Parameterized queries preserve the statement structure, while validation alone does not replace parameter binding."],
+    "v-idor": ["IDOR is an object-level authorization failure: a reachable identifier is mistaken for permission to access its record.", "Compare a record you own with another synthetic record while signed in; check both read and state-changing routes.", "Scope every lookup to the identity and permissions established by the server-side session."],
+    "v-traversal": ["Path traversal occurs when a request-controlled path resolves outside the directory the feature is meant to serve.", "Compare a normal public document with the fictional private-note sample and inspect the returned document boundary.", "Canonicalize before checking containment, or map a safe document ID to a server-controlled path."],
+    "v-bac": ["Broken access control means the server permits an action or resource that the current user’s policy should deny.", "A signed-in participant can still lack permission to update shared settings; test the action directly in the local lab.", "Enforce a deny-by-default permission check on every server request, not just on visible links."],
+    compare: ["Start with the boundary that failed, then identify the server-side control that should have enforced it.", "Input validation, authentication, and UI visibility solve different problems; do not substitute one for another.", "Verify the control across alternate routes and methods using authorized synthetic data."],
+    quickref: ["Use this page as a starting index, then open the full lesson before making a technical judgment.", "Keep command output, network observations, and web responses tied to the exact scope and time of the exercise.", "Record uncertainty as well as confirmed behavior; one observation rarely proves the whole cause."]
+  };
+
+  function appendLessonContext(id) {
+    var notes = lessonContext[id];
+    if (!notes) return;
+    var section = document.createElement("section");
+    section.className = "lesson-context open-detail";
+    section.innerHTML = '<h2>Field notes for this lesson</h2><ul class="check-list">' + notes.map(function (note) { return "<li>" + esc(note) + "</li>"; }).join("") + "</ul>";
+    var actions = main.querySelector(".lesson-actions");
+    if (actions) actions.before(section); else main.appendChild(section);
   }
 
   function renderLessonWalkthrough(v) {
@@ -481,13 +453,13 @@
       ["02", "Nmap", "Plan an authorized discovery workflow and interpret host, port, and service results.", "7 command patterns", "nmap"],
       ["03", "Zenmap", "Connect a graphical scan workflow to its generated Nmap command and results.", "Guided workflow", "zen"],
       ["04", "Wireshark", "Follow a conversation from packet overview to protocol details with display filters.", "6 display filters", "ws"],
-      ["05", "Linux essentials", "Navigate, inspect files, search logs, understand permissions, and review your lab system.", "7 command groups", "linux"],
-      ["06", "Web vulnerabilities", "Study six common weaknesses through causes, safe review questions, and defenses.", "6 lessons", "web"]
+      ["05", "Linux essentials", "Navigate, inspect files, search logs, understand permissions, use SSH, and review your lab system.", "9 command groups", "linux"],
+      ["06", "Web vulnerabilities", "Study four common weaknesses through causes, safe review questions, and defenses.", "4 lessons", "web"]
     ];
-    return '<section class="hero"><div class="hero-copy"><p class="eyebrow">FIELD NOTES 01&nbsp; / &nbsp;DEFENSIVE PRACTICE</p><h1>Learn to see<br>the seam.</h1><p class="lead">A practical cybersecurity field manual for understanding systems, reading what they reveal, and building safer software.</p><div class="hero-actions"><button class="btn" type="button" data-go="net">Begin the field guide <span>→</span></button><button class="btn btn-light" type="button" data-go="demo-lab">Enter the Practice Bench <span>↗</span></button><span class="hero-note">Concepts first. Practice with permission.</span></div></div><div class="hero-art" aria-hidden="true"></div></section>' +
-      '<div class="stats-strip"><div class="stat"><b>05</b><span>Foundations<br>and tools</span></div><div class="stat"><b>06</b><span>Web weakness<br>lessons</span></div><div class="stat"><b>01</b><span>Rule that travels<br>with every lesson</span></div></div>' +
+    return '<section class="hero"><div class="hero-copy"><p class="eyebrow">FIELD NOTES 01&nbsp; / &nbsp;DEFENSIVE PRACTICE</p><h1>Learn to see<br>the seam.</h1><p class="lead">A practical cybersecurity field manual for understanding systems, reading what they reveal, and building safer software.</p><div class="hero-actions"><button class="btn" type="button" data-go="net">Begin the field guide <span>→</span></button><a class="btn btn-light" href="' + esc(dvwbUrl) + '" target="_blank" rel="noopener">Open the DVWB <span>↗</span></a><span class="hero-note">Concepts first. Practice with permission.</span></div></div></section>' +
+      '<div class="stats-strip"><div class="stat"><b>05</b><span>Foundations<br>and tools</span></div><div class="stat"><b>04</b><span>Web weakness<br>lessons</span></div><div class="stat"><b>01</b><span>Rule that travels<br>with every lesson</span></div></div>' +
       '<div class="section-head"><h2>Choose a learning track</h2><span class="minor">A FIELD GUIDE, NOT A CHECKLIST</span></div>' +
-      '<div class="grid">' + courses.map(function (c) {
+      '<div class="grid course-list">' + courses.map(function (c) {
         return '<button class="card course-card" type="button" data-go="' + c[4] + '"><span class="course-index">TRACK ' + c[0] + "</span><h3>" + c[1] + "</h3><p>" + c[2] + '</p><span class="card-foot"><span>' + c[3] + '</span><span>OPEN GUIDE ↗</span></span></button>';
       }).join("") + "</div>" +
       '<div class="section-head"><h2>A steady learning path</h2><span class="minor">FOUNDATION → OBSERVATION → REVIEW</span></div>' +
@@ -503,7 +475,7 @@
 
   function renderNetwork() {
     return lessonHeader("Foundation / 01", "Networking basics", "Learn the path from an interface and address to a routed connection and application response. Study one focused chapter at a time.", "01") +
-      '<div class="module-intro"><span class="intro-mark"><span>↗</span></span><p>When a connection works, several layers are cooperating. When it fails, locate the failing step rather than guessing: interface, address, route, name resolution, transport, then application.</p></div>' +
+      '<div class="module-intro"><span class="intro-mark"><span>↗</span></span><p>When a connection works, several layers are cooperating. When it fails, locate the failing step rather than guessing: interface, address, route, name resolution, transport, then application. Tools serve different questions: Nmap observes host and service responses, Wireshark inspects packets visible at an authorized observation point, and Zenmap provides a graphical way to configure and review Nmap scans. None is required for every task; choose the least complex tool that answers the question.</p></div>' +
       '<div class="section-head"><h2>Choose a chapter</h2><span class="minor">FOUR CONNECTED LESSONS</span></div>' +
       '<div class="grid two">' + [
         ["net-addressing", "01 · Addresses & subnets", "IPv4 and IPv6, CIDR prefixes, private ranges, and local-link identifiers."],
@@ -516,10 +488,27 @@
       lessonActions("net-addressing");
   }
 
+  var networkCommandNotes = {
+    "ip -br addr": ["Shows each local network interface, its state, and assigned addresses in a compact format.", "Use it to check whether the expected interface is up and has an address before investigating a remote connection.", "ip selects the network configuration tool; addr requests address information; -br asks for brief, one-line output."],
+    "ip addr": ["Lists local interfaces and their IPv4/IPv6 addresses with additional interface details.", "Use it to understand which addresses belong to the machine and which interface is involved.", "ip is the network configuration tool; addr selects address information. This is a local inspection, not a remote scan."],
+    "ip route": ["Displays the local routing table: connected networks and routes used to forward traffic.", "Use it to check whether the system has a path configured before concluding that a destination is unavailable.", "ip selects the network tool; route asks for routing information."],
+    "ip route show default": ["Shows the default route, typically including the gateway and outgoing interface.", "Use it when diagnosing where traffic goes if no more-specific route matches a destination.", "route selects routing information; show default narrows the output to the fallback route."],
+    "ip route get <approved-ip>": ["Asks the local routing system which interface and next hop it would use for one address.", "Use it to diagnose the selected route without probing the destination.", "route get requests a route decision for one destination; replace the placeholder only with an approved address."],
+    "ip -6 route": ["Shows the local IPv6 routing table.", "Use it when the connection uses IPv6; IPv4 and IPv6 can have different routes and failure causes.", "ip selects the network tool; -6 chooses IPv6; route requests routing information."],
+    "getent hosts <lab-name>": ["Looks up a supplied name through the machine's configured name-service sources.", "Use it to distinguish a name-resolution problem from a later connection or application problem.", "getent queries configured system databases; hosts selects name lookup; replace the placeholder only with the supplied lab name."],
+    "getent hosts example.test": ["Checks how the local machine resolves the reserved example name.", "Use it to demonstrate configured name lookup without targeting a real service.", "getent queries configured system databases; hosts selects name lookup; example.test is a documentation placeholder."],
+    "dig <lab-name>": ["Sends a DNS query and displays the response, record details, and resolver information.", "Use it when a simple lookup is insufficient and the lesson asks about DNS records or resolver behavior.", "dig is a DNS query utility; replace the placeholder with a permitted lab name. It may not be installed in every restricted environment."],
+    "ping -c 4 <approved-host>": ["Sends four ICMP echo requests and reports replies and timing when available.", "Use it as one limited reachability clue; a firewall may block ICMP while the application remains available.", "ping sends echo requests; -c 4 sets the count to four; the host must be explicitly in scope."],
+    "ss -tuln": ["Lists local listening TCP and UDP sockets without resolving names.", "Use it to review services listening on the machine you administer, rather than scanning another host.", "ss inspects sockets; -t includes TCP, -u UDP, -l listening sockets, and -n keeps numeric addresses and ports."],
+    "ss -tn": ["Lists local TCP sockets and connection states using numeric addresses and ports.", "Use it to see whether the local application has an established, waiting, or closing connection.", "-t selects TCP and -n avoids name resolution for the display."],
+    "curl -I https://example.test": ["Requests response headers from the reserved example endpoint without asking for the response body.", "Use it to inspect an HTTP service's status and headers when the endpoint is permitted and available.", "curl makes a web request; -I asks for headers only; example.test is a documentation placeholder."]
+  };
+
   function networkChapter(title, lead, concepts, fieldNotes, next) {
     return lessonHeader("Foundation / Networking", title, lead, "01") +
       '<div class="grid two">' + concepts.map(function (item, i) {
-        return '<article class="card"><span class="course-index">CONCEPT 0' + (i + 1) + '</span><h3>' + esc(item[0]) + '</h3><p>' + esc(item[1]) + '</p><p><strong>Why it matters:</strong> ' + esc(item[2]) + '</p>' + (item[3] ? codeCard("Linux example", item[3]) : "") + '</article>';
+        var note = item[3] ? (networkCommandNotes[item[3]] || ["Prints local network information relevant to this concept.", item[2], "Read the command name first, then its options and target value."]) : null;
+        return '<article class="card"><span class="course-index">CONCEPT 0' + (i + 1) + '</span><h3>' + esc(item[0]) + '</h3><p>' + esc(item[1]) + '</p><p><strong>Why it matters:</strong> ' + esc(item[2]) + '</p>' + (item[3] ? commandGuide(item[3], note[0], note[1], note[2]) : "") + '</article>';
       }).join("") + "</div>" +
       lessonBlock("03", "Practical checks", list(fieldNotes)) +
       lessonBlock("Q", "Check your understanding", '<details><summary>What should you record?</summary><div class="details-body">Record the question you were checking, the sample or endpoint, the observation, and what remains uncertain. Keep confidential values and personal data out of shared notes.</div></details>') +
@@ -531,7 +520,7 @@
       ["IPv4 and IPv6", "IPv4 addresses are 32 bits and are commonly written as four decimal octets. IPv6 addresses are 128 bits and use hexadecimal groups. An address belongs to an interface; one machine can have several interfaces and addresses.", "Record the address family and interface when diagnosing a connection. Do not assume a host has only one address.", "ip -br addr"],
       ["CIDR prefix and subnet", "CIDR writes the network prefix after a slash, for example 192.0.2.0/24. The /24 means 24 leading bits describe the network; the remaining 8 bits provide 256 IPv4 address values. In a conventional /24 broadcast subnet, one value identifies the network and one is the broadcast address, leaving 254 host addresses. A subnet mask expresses the same boundary in another form.", "The prefix helps decide whether a destination should be reached directly or through a gateway. Addressing has exceptions—such as point-to-point /31 links—and IPv6 does not use broadcast addresses, so follow the actual network plan.", "ip addr"],
       ["Private and public ranges", "The common private IPv4 blocks are 10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16. They are meant for internal routing; public addresses are globally allocated. Network address translation (NAT) may let internal hosts share an external address. The 192.0.2.0/24 range used in examples is reserved for documentation.", "Private addressing describes routing scope, not trust. A private service can still be exposed within its network; use only addresses you are authorized to assess.", "ip route"],
-      ["MAC address and local link", "A MAC address is used for delivery on a local link, while an IP address supports routing between networks. ARP (IPv4) or Neighbor Discovery (IPv6) helps map a nearby IP to a link-layer address. This mapping is usually needed for the next hop, which may be the destination or the gateway.", "This distinction helps separate local-link problems from routing or application problems.", "ip neigh"]
+      ["MAC address and local link", "A MAC address identifies an interface for delivery on a local link, while an IP address supports routing between networks. For IPv4, ARP helps a device find the link-layer address for a nearby IP. IPv6 uses Neighbor Discovery for related local-link functions. The mapping is usually needed for the next hop, which may be the destination or the gateway.", "This distinction helps separate local-link delivery problems from routing or application problems. A MAC address is meaningful on its local link and is not a replacement for an IP address."]
     ], ["Keep the prefix attached to an address; omitting it can change which network it describes.", "Record hostname, address, port, and service as separate facts rather than merging them into one guess.", "Check your own interface configuration before drawing conclusions about a remote endpoint."], "net-routing");
   }
 
@@ -540,7 +529,7 @@
       ["Local or remote destination", "The sender compares the destination with its connected subnet. A destination on the same link can be reached directly; an off-subnet destination is sent to a router.", "A correct address can still fail to reach an outside service if the route or gateway is missing.", "ip route"],
       ["Default gateway", "A default route is the fallback when no more-specific route matches. It usually points to a local router. The gateway is the next hop, not the final destination.", "Check which gateway is configured before assuming a remote service is down.", "ip route show default"],
       ["Route selection", "A routing table can contain several routes. Systems generally prefer the most-specific matching prefix, then use metrics or policy to choose among comparable paths.", "The route actually selected for one destination is more useful than guessing from a diagram.", "ip route get <approved-ip>"],
-      ["Neighbor resolution and NAT", "On a local link, the system needs a link-layer address for its next hop. NAT can rewrite addresses at a network boundary, but it does not replace routing or application protocols.", "A stale neighbor entry can disrupt local delivery; NAT can make observed source addresses differ across boundaries.", "ip neigh"]
+      ["Neighbor resolution and NAT", "On a local link, the system needs a link-layer address for its next hop. ARP supports this mapping for IPv4 and Neighbor Discovery provides related functions for IPv6. NAT can rewrite addresses at a network boundary, but it does not replace routing or application protocols.", "A local-link mapping problem can disrupt delivery to the next hop; NAT can make observed source addresses differ across network boundaries.", "ip route"]
     ], ["Check the selected route for one authorized destination instead of scanning a wider range to diagnose a connection.", "Record the interface and next hop locally; avoid publishing internal network details.", "Treat an incomplete route trace as a clue because routers may suppress diagnostic replies."], "net-services");
   }
 
@@ -556,7 +545,7 @@
   function renderNetworkTroubleshooting() {
     return lessonHeader("Foundation / Networking", "Network troubleshooting", "Work from the local interface toward the application. Change one variable at a time so the result points to the layer that needs attention.", "04") +
       '<div class="flow"><article class="flow-step"><strong>01 · LINK</strong><p>Is the expected interface up and configured?</p></article><article class="flow-step"><strong>02 · ADDRESS</strong><p>Does the local address and prefix make sense?</p></article><article class="flow-step"><strong>03 · ROUTE</strong><p>Which next hop will the system select?</p></article><article class="flow-step"><strong>04 · SERVICE</strong><p>Does the name resolve and does the expected service respond?</p></article></div>' +
-      '<div class="grid two"><article class="card"><h3>1. Check local configuration</h3><p>Inspect interface state and addresses. If the lab machine lacks an expected address, remote service checks may be premature.</p>' + codeCard("Local interfaces", "ip -br addr") + '</article><article class="card"><h3>2. Check the route</h3><p>Ask which interface and gateway would be used for one authorized destination.</p>' + codeCard("Selected route", "ip route get <approved-ip>") + '</article><article class="card"><h3>3. Check name resolution</h3><p>Resolve the provided name using configured lookup sources; treat a DNS answer as separate evidence from reachability.</p>' + codeCard("Configured lookup", "getent hosts <lab-name>") + '</article><article class="card"><h3>4. Check the application response</h3><p>If the endpoint is in scope, inspect its status and headers. A response proves an application answered, not that its content is correct.</p>' + codeCard("Response headers", "curl -I https://example.test") + '</article></div>' +
+      '<div class="grid two"><article class="card"><h3>1. Check local configuration</h3><p>Inspect interface state and addresses. If the lab machine lacks an expected address, remote service checks may be premature.</p>' + commandGuide("ip -br addr", networkCommandNotes["ip -br addr"][0], networkCommandNotes["ip -br addr"][1], networkCommandNotes["ip -br addr"][2]) + '</article><article class="card"><h3>2. Check the route</h3><p>Ask which interface and gateway would be used for one authorized destination.</p>' + commandGuide("ip route get <approved-ip>", networkCommandNotes["ip route get <approved-ip>"][0], networkCommandNotes["ip route get <approved-ip>"][1], networkCommandNotes["ip route get <approved-ip>"][2]) + '</article><article class="card"><h3>3. Check name resolution</h3><p>Resolve the provided name using configured lookup sources; treat a DNS answer as separate evidence from reachability.</p>' + commandGuide("getent hosts <lab-name>", networkCommandNotes["getent hosts <lab-name>"][0], networkCommandNotes["getent hosts <lab-name>"][1], networkCommandNotes["getent hosts <lab-name>"][2]) + '</article><article class="card"><h3>4. Check the application response</h3><p>If the endpoint is in scope, inspect its status and headers. A response proves an application answered, not that its content is correct.</p>' + commandGuide("curl -I https://example.test", networkCommandNotes["curl -I https://example.test"][0], networkCommandNotes["curl -I https://example.test"][1], networkCommandNotes["curl -I https://example.test"][2]) + '</article></div>' +
       lessonActions("nmap");
   }
 
@@ -567,7 +556,7 @@
       '<div class="section-head"><h2>Essential scan patterns</h2><span class="minor">COMMAND · PURPOSE · WHAT TO NOTICE</span></div>' +
       '<div class="grid two">' + nmapLessons.map(function (item, i) {
         return '<article class="card"><span class="eyebrow">PATTERN 0' + (i + 1) + "</span><h3>" + esc(item.title) + "</h3><p>" + esc(item.purpose) + "</p>" +
-          codeCard("Example syntax", item.command) + '<p><strong>Read the result.</strong> ' + esc(item.observe) + "</p></article>";
+          commandGuide(item.command, item.purpose, item.why, item.syntax) + '<p><strong>Read the result.</strong> ' + esc(item.observe) + "</p></article>";
       }).join("") + "</div>" +
       '<div class="section-head"><h2>Read a scan result</h2><span class="minor">SYNTHETIC DOCUMENTATION-NETWORK EXAMPLE</span></div>' +
       '<div class="grid two"><article class="card"><span class="eyebrow">SAMPLE SUMMARY</span><pre class="sample-output"><code>Host is up (0.012s latency).\nPORT     STATE     SERVICE\n22/tcp   open      ssh\n80/tcp   open      http\n443/tcp  filtered  https</code></pre><p>This is a fictional example using a documentation-only address placeholder. It teaches result reading; it is not a target.</p></article><article class="card"><span class="eyebrow">INTERPRET WITH CARE</span><h3>State is an observation</h3><p><strong>Open:</strong> a service accepted or answered the probe. <strong>Closed:</strong> the host replied, but no service was listening on that port. <strong>Filtered:</strong> a network control prevented a clear classification.</p><p>A service name is a best-effort label, not proof of product or version. Confirm findings through authorized inventory and owner context.</p></article></div>' +
@@ -586,14 +575,18 @@
       ["Output", "Shows discovered hosts, ports, and service information."],
       ["Topology", "Can visualize relationships between responding hosts."]
     ];
-    return lessonHeader("Foundation / 03", "Zenmap", "A graphical interface for Nmap. It uses the same scanning engine and can make command options easier to inspect.", "03") +
-      '<div class="grid two"><article class="card"><span class="eyebrow">COMMAND LINE</span><h3>Nmap</h3><p>Direct control, repeatable commands, and flexible options. A good fit when you know which checks are in scope.</p><div class="tag-line"><span class="pill blue">Precise</span><span class="pill blue">Scriptable</span></div></article><article class="card"><span class="eyebrow">GRAPHICAL WORKFLOW</span><h3>Zenmap</h3><p>A visual way to choose a profile and inspect the command it generates. Useful when learning how options relate.</p><div class="tag-line"><span class="pill">Visual</span><span class="pill">Profile based</span></div></article></div>' +
+    return lessonHeader("Foundation / 03", "Zenmap", "Zenmap is Nmap’s graphical interface: it helps configure, run, and review Nmap scans through a visual workflow.", "03") +
+      '<div class="lesson-block"><h2><span>01</span>What Zenmap is for</h2><p>Nmap is the scanner and command-line tool. Zenmap is a graphical front end that lets a learner select a target, choose a saved profile, inspect the Nmap command those choices produce, start the scan, and review its output. The scan still uses Nmap; the interface does not make a scan quieter, safer, or more authorized.</p><p>Zenmap is useful when learning what options mean, when comparing saved profiles, and when keeping a visual history of scans. Direct Nmap is useful for precise command control, repeatable notes, automation, and environments where a graphical desktop is unavailable.</p></div>' +
+      '<div class="grid two"><article class="card"><span class="eyebrow">SCANNER / COMMAND LINE</span><h3>Nmap</h3><p>The network exploration and security auditing program. You type the target and options directly, which makes commands easy to copy into a report or approved script.</p><p><strong>Best fit:</strong> exact option control, repeatable workflows, automation, and remote or terminal-only environments.</p></article><article class="card"><span class="eyebrow">GRAPHICAL FRONT END</span><h3>Zenmap</h3><p>A desktop application for choosing targets and profiles, showing the generated Nmap command, and viewing results in organized tabs.</p><p><strong>Best fit:</strong> learning option relationships, reviewing scan history, and visual exploration of host results.</p></article></div>' +
+      '<div class="section-head"><h2>Main differences</h2><span class="minor">SAME SCANNER · DIFFERENT WORKFLOW</span></div>' +
+      '<div class="data-table-wrap"><table><thead><tr><th>Question</th><th>Nmap</th><th>Zenmap</th></tr></thead><tbody><tr><th>How do I configure it?</th><td>Type options and targets as a command.</td><td>Select fields or a profile; inspect the generated command.</td></tr><tr><th>What runs the scan?</th><td>Nmap itself.</td><td>Zenmap invokes the Nmap scanner installed on the machine.</td></tr><tr><th>How do I repeat it?</th><td>Save and rerun the command or approved script.</td><td>Reuse a saved profile or scan history; review the command for exact settings.</td></tr><tr><th>Where is it available?</th><td>Terminal environments and systems with Nmap installed.</td><td>Systems with a graphical desktop and a compatible Zenmap installation.</td></tr><tr><th>Does the GUI change scan impact?</th><td>No; impact depends on options and target.</td><td>No; it runs the selected Nmap behavior and needs the same authorization.</td></tr></tbody></table></div>' +
       '<div class="section-head"><h2>Read the interface</h2><span class="minor">THE COMMAND FIELD IS A TEACHING TOOL</span></div>' +
       '<div class="term-grid">' + fields.map(function (f, i) {
         return '<article class="term-card"><span class="course-index">0' + (i + 1) + "</span><h3>" + f[0] + "</h3><p class=\"definition\">" + f[1] + "</p></article>";
       }).join("") + "</div>" +
       '<div class="section-head"><h2>Use the interface as a learning loop</h2><span class="minor">SET → INSPECT → RUN → REVIEW</span></div>' +
       '<div class="grid two"><article class="card"><h3>1. Set a permitted target</h3><p>Use only the host or range provided for the lab. Keep scope and timing visible before choosing a profile.</p></article><article class="card"><h3>2. Inspect the generated command</h3><p>Notice how profile choices become options. Check whether service detection, scripts, or broader probes are enabled.</p></article><article class="card"><h3>3. Run the smallest useful check</h3><p>Choose a low-impact profile that answers the question. A graphical interface does not reduce scan traffic or risk.</p></article><article class="card"><h3>4. Review and save context</h3><p>Read hosts, ports, and service clues together. Save the command and result with the authorized exercise notes.</p></article></div>' +
+      '<div class="lesson-block"><h2><span>02</span>Why inspect the generated command?</h2><p>The command field connects the graphical choice to the actual scan options. If a profile includes version probes, operating-system detection, scripts, or a wider port range, those options are visible before execution. Reading this field builds transferable command-line understanding and helps catch a scope or intensity mistake early.</p><p>Profiles are starting points, not permission. Confirm the target and options against the written exercise scope every time.</p></div>' +
       '<div class="note neutral"><span>Choose a profile only after confirming the permitted scope. Read the generated command before starting the scan so its intensity is clear.</span></div>' +
       lessonBlock("01", "Check your understanding", '<details><summary>What is the relationship between Zenmap and Nmap?</summary><div class="details-body">Zenmap provides a graphical workflow around the Nmap scanning engine. The interface does not change the need for authorization or careful scope.</div></details>') +
       lessonActions("ws");
@@ -611,8 +604,8 @@
       ["tcp", "TCP traffic", "Show packets carried by TCP."],
       ["udp", "UDP traffic", "Show packets carried by UDP."],
       ["icmp", "ICMP traffic", "Review diagnostic and network-control messages."],
-      ["tcp.port == 443", "TCP port 443", "Narrow the view to traffic using this service port."],
-      ["tls", "TLS protocol", "Focus on packets Wireshark identifies as TLS."]
+      ["tcp.port == 443", "TCP port 443", "Narrow the view to traffic using this service port.", "tcp.port selects the TCP port field; == means equals; 443 is the port value. It can match source or destination port."],
+      ["tls", "TLS protocol", "Focus on packets Wireshark identifies as TLS.", "tls is a protocol display-filter field; it matches packets Wireshark decodes as TLS."]
     ];
     return lessonHeader("Foundation / 04", "Wireshark", "A protocol analyzer for capturing and inspecting network traffic you are authorized to observe.", "04") +
       '<div class="note"><span>Capture only traffic that you own or have explicit permission to monitor. Packet captures can contain private information; store and share them carefully.</span></div>' +
@@ -620,10 +613,14 @@
       '<div class="grid two">' + panes.map(function (p, i) {
         return '<article class="card"><span class="course-index">PANE 0' + (i + 1) + "</span><h3>" + p[0] + "</h3><p>" + p[1] + "</p></article>";
       }).join("") + "</div>" +
+      '<div class="lesson-block"><h2><span>01</span>What Wireshark does and why it is useful</h2><p>Wireshark is a protocol analyzer. It records or opens packet captures and presents conversations as summaries and decoded protocol fields. It helps answer questions such as whether name resolution happened, which endpoint sent a response, where a connection stalled, and which protocol layer contains the evidence.</p><p>It complements a scanner: Nmap describes how a host responded to probes; Wireshark shows packets visible at a chosen observation point. A capture is only a view of traffic seen at that interface and time, so it cannot prove what happened elsewhere. Encrypted application content usually remains unreadable without authorized decryption material.</p></div>' +
       '<div class="section-head"><h2>Display filters</h2><span class="minor">FILTER THE VIEW, NOT THE CAPTURE</span></div>' +
       '<div class="grid two">' + filters.map(function (f) {
-        return '<article class="card">' + codeCard("Display filter", f[0]) + '<h3>' + f[1] + "</h3><p>" + f[2] + "</p></article>";
+        var filterSyntax = f[3] || (f[0].indexOf(".") >= 0 ? "The expression selects a protocol field; read the name as the property Wireshark should match." : f[0] + " is a protocol display-filter keyword that matches packets decoded as that protocol.");
+        return '<article class="card">' + codeCard("Display filter", f[0]) + '<h3>' + f[1] + "</h3><p><strong>What it shows:</strong> " + f[2] + "</p><p><strong>Why use it:</strong> Narrow a busy capture to the protocol or service relevant to the current troubleshooting question. A filter does not establish that the traffic is malicious or harmless.</p><p><strong>Read the filter:</strong> " + filterSyntax + "</p></article>";
       }).join("") + "</div>" +
+      '<div class="section-head"><h2>Capture and review workflow</h2><span class="minor">QUESTION → INTERFACE → FILTER → INTERPRET</span></div>' +
+      '<div class="grid two"><article class="card"><h3>1. Start with a question</h3><p>Decide what you need to observe, such as whether a supplied lab name resolves or whether a permitted client receives a response. A focused question makes the capture easier to review.</p></article><article class="card"><h3>2. Choose the observation point</h3><p>Select only an interface and traffic you are authorized to monitor. A capture on the wrong interface may show nothing even when the service works.</p></article><article class="card"><h3>3. Capture only what is needed</h3><p>Keep the time window and scope narrow. Captures can contain credentials, personal information, or internal metadata; handle and retain them under the lab rules.</p></article><article class="card"><h3>4. Filter, then inspect</h3><p>Use display filters to focus on relevant packets, expand the protocol fields, and compare request and response direction, timing, and status.</p></article></div>' +
       '<div class="section-head"><h2>Follow one conversation</h2><span class="minor">A PRACTICAL PACKET-REVIEW ROUTINE</span></div>' +
       '<div class="grid two"><article class="card"><h3>Start broad, then narrow</h3><p>Find the relevant host and time window in the packet list. Apply a display filter to focus the view without changing the capture.</p></article><article class="card"><h3>Expand protocol layers</h3><p>Select one packet and inspect Ethernet, IP, transport, and application fields. Each layer answers a different question.</p></article><article class="card"><h3>Compare request and response</h3><p>Look for direction, timing, retries, and response codes. A missing reply may have several causes, including routing or filtering.</p></article><article class="card"><h3>Account for encryption</h3><p>TLS generally hides application content from a passive capture. Metadata such as endpoints, timing, and packet sizes may remain visible.</p></article></div>' +
       infoDisclosure("Capture filters and display filters", "<p>A <strong>capture filter</strong> limits which packets are recorded and can discard evidence before review. A <strong>display filter</strong> narrows what is shown from packets already captured. Keep an original capture when policy permits and apply display filters during analysis.</p>") +
@@ -632,17 +629,33 @@
       lessonActions("linux");
   }
 
+  var linuxSyntax = {
+    "ls -la": "ls lists directory contents; -l requests a detailed listing and -a includes hidden entries whose names begin with a period. The current directory is used when no path is supplied.",
+    "ls -l": "ls lists directory contents; -l shows a long format with permissions, owner, group, size, and modification time.",
+    "cat notes.txt": "cat is the program; notes.txt is the file it reads. Its content is written to standard output, usually the terminal.",
+    "grep -i \"error\" app.log": "grep searches text; -i makes matching case-insensitive; the quoted word is the search pattern; app.log is the file being searched.",
+    "grep -n \"denied\" app.log": "grep searches text; -n adds line numbers; the quoted word is the search pattern; app.log is the input file.",
+    "grep -R \"TODO\" ./src": "grep searches for the quoted pattern; -R searches files under the directory recursively; ./src is the starting folder.",
+    "sed -n '1,10p' app.log": "sed processes text; -n suppresses its usual automatic output; 1,10p means print lines 1 through 10; app.log is the input. No in-place option is used, so the source file remains unchanged.",
+    "tr '[:lower:]' '[:upper:]' < names.txt": "tr reads the first character set and maps it to the second; the bracket expressions mean lowercase and uppercase characters. The < operator supplies names.txt as input instead of keyboard input.",
+    "echo \"Review complete\"": "echo is the command; the quoted phrase is its argument. It writes the phrase and a newline to standard output."
+  };
+
   function renderLinux() {
     return lessonHeader("Foundation / 05", "Linux essentials", "A compact command-line guide for navigating folders, reading files, searching, and understanding your own lab machine.", "05") +
-      '<div class="note neutral"><span>Use commands in a disposable practice folder. Be especially careful with commands that move, overwrite, or remove files.</span></div>' +
+      '<div class="lesson-block"><h2><span>01</span>How a shell command is put together</h2><p>A command usually begins with a program name, followed by options that adjust its behavior, then values such as a filename, directory, host, or port. For example, in <code>grep -n "denied" app.log</code>, <code>grep</code> searches text, <code>-n</code> asks it to show line numbers, <code>"denied"</code> is the text to find, and <code>app.log</code> is the file to search.</p><p>Read the command from left to right before running it. Identify what it reads or changes, where it will act, whether it needs special permissions, and what its output means. Quoted values keep spaces together as one argument.</p></div>' +
+      '<div class="lesson-block"><h2><span>02</span>Why these command groups matter</h2><p>Navigation commands establish where you are; file tools help inspect and organize supplied material; search tools locate relevant evidence; permission commands explain who can read or change files; network commands show local configuration; system tools provide context for a machine you administer.</p><p>These are examples for learning, not a promise that every restricted trainer shell includes every utility. Some commands depend on optional packages or operating-system features. If a utility is unavailable, use the approved equivalent provided by the trainer or administrator; do not install tools or broaden access unless the exercise owner directs you to.</p></div>' +
+      '<div class="note neutral"><span>Use commands in a disposable practice folder. Before each command, identify its target and whether it only reads information or changes files. Be especially careful with commands that move, overwrite, or remove files.</span></div>' +
       linuxGroups.map(function (group, gi) {
-        return '<div class="section-head"><h2>' + esc(group.title) + '</h2><span class="minor">GROUP 0' + (gi + 1) + '</span></div><div class="grid two">' +
+        var sshIntro = group.title.indexOf("SSH") === 0 ? '<div class="lesson-block"><h2><span>SSH</span>What Secure Shell means</h2><p>Secure Shell (SSH) is a network protocol that provides an encrypted connection between two computers. It is commonly used to open a remote text terminal and administer a system. Encryption protects the connection from being read or altered in transit, while authentication checks which account or key is connecting. SSH does not grant permission by itself: the account must still be authorized for the requested work.</p><div class="grid two"><article class="card"><h3>SSH client: <code>ssh</code></h3><p>The client runs on the computer where the person begins the connection. It identifies the destination host and account, negotiates the encrypted session, and presents an approved authentication method.</p><p>Example: when an operator at a workstation enters <code>ssh learner@lab-host</code>, that workstation is the client. The client initiates the connection; it does not wait for other computers to connect to it.</p></article><article class="card"><h3>SSH server: <code>sshd</code></h3><p>The server program, commonly named <code>sshd</code>, runs on the remote computer. It listens for incoming SSH connections, presents the server identity, checks the requested account and authentication, and starts a session only when policy permits.</p><p>TCP port 22 is the conventional default, but an administrator can configure another port. A listening service, firewall rules, account policy, and valid authentication must all permit the session.</p></article></div><p><strong>Direction:</strong> the client starts the connection; the server receives it. <code>ssh</code> is the client command, while <code>sshd</code> is the server daemon (a background service). The examples below explain both sides. Service-management commands may require administrator privileges and may not exist in a restricted training shell.</p></div>' : "";
+        return sshIntro + '<div class="section-head"><h2>' + esc(group.title) + '</h2><span class="minor">GROUP 0' + (gi + 1) + '</span></div><div class="grid two">' +
           group.rows.map(function (row) {
-            return '<article class="card">' + codeCard("Command", row[0]) + "<h3>" + esc(row[1]) + '</h3><p><strong>What it does:</strong> ' + esc(row[2]) + '</p><p class="command-why"><strong>Why use it:</strong> ' + esc(linuxWhy[row[0]] || "Use it when this information helps answer the current, authorized lab question.") + "</p></article>";
+            return '<article class="card">' + codeCard("Command", row[0]) + "<h3>" + esc(row[1]) + '</h3><p><strong>What it does:</strong> ' + esc(row[2]) + '</p><p class="command-why"><strong>Why use it:</strong> ' + esc(linuxWhy[row[0]] || "Use it when this information helps answer the current, authorized lab question.") + "</p>" + (linuxSyntax[row[0]] ? '<p><strong>Read the syntax:</strong> ' + esc(linuxSyntax[row[0]]) + '</p>' : "") + "</article>";
           }).join("") + "</div>";
       }).join("") +
-      '<div class="section-head"><h2>Combine commands safely</h2><span class="minor">PIPE · REDIRECT · INSPECT</span></div>' +
-      '<div class="grid two"><article class="card">' + codeCard("Pipe output into a search", "grep -i \"warning\" app.log | head -n 20") + '<p><strong>What it does:</strong> A pipe sends matching log lines to <code>head</code>, which limits the display to 20 lines.</p><p class="command-why"><strong>Why use it:</strong> Narrow a large log to a manageable set of relevant clues without flooding the terminal.</p></article><article class="card">' + codeCard("Save a command result", "ss -tuln > listening-sockets.txt") + '<p><strong>What it does:</strong> The greater-than operator writes output to a file and replaces its previous contents.</p><p class="command-why"><strong>Why use it:</strong> Save a local snapshot for later comparison; choose a new disposable filename so you do not overwrite useful work.</p></article><article class="card"><h3>Understand standard streams</h3><p><strong>stdin</strong> is input, <strong>stdout</strong> is normal output, and <strong>stderr</strong> is diagnostic output. Redirection can send each stream to a different destination.</p></article><article class="card"><h3>Check before changing</h3><p>Use <code>pwd</code>, inspect the exact path, and understand the command options before moving, overwriting, changing permissions, or removing anything.</p></article></div>' +
+      '<div class="section-head"><h2>Input, output, and pipes</h2><span class="minor">SHELL OPERATORS</span></div>' +
+      '<div class="lesson-block"><p>Commands normally receive input through <strong>standard input</strong> (often the keyboard) and write normal results to <strong>standard output</strong> (often the terminal). A shell operator can connect these streams to a file or another command. The operator controls data flow; it is not a separate program.</p></div>' +
+      '<div class="grid two"><article class="card">' + codeCard("Input redirection", "wc -l < app.log") + '<h3>Read input from a file</h3><p><strong>What it does:</strong> The shell opens app.log and supplies its contents as standard input to <code>wc</code>, which counts lines because of <code>-l</code>. The count is printed in the terminal.</p><p class="command-why"><strong>Why use it:</strong> Use input redirection when a program can read from standard input and you want its input to come from an existing file.</p><p><strong>Read the syntax:</strong> <code>&lt;</code> means “take input from”; app.log is the source file; <code>-l</code> asks <code>wc</code> to count lines. This does not change the source file.</p></article><article class="card">' + codeCard("Output redirection", "echo \"Review complete\" > review.txt") + '<h3>Write output to a file</h3><p><strong>What it does:</strong> <code>echo</code> writes the message to standard output; <code>&gt;</code> sends that output into review.txt instead of the terminal. A single <code>&gt;</code> creates the file or replaces its existing contents.</p><p class="command-why"><strong>Why use it:</strong> Use it to save command output for later review. Check the destination first because existing content will be overwritten.</p><p><strong>Read the syntax:</strong> The command appears before <code>&gt;</code>; the filename after it is the destination. Use <code>&gt;&gt;</code> to append output to the end of an existing file instead of replacing it.</p></article><article class="card">' + codeCard("Pipe operator", "grep -i \"warning\" app.log | head -n 20") + '<h3>Send output to another command</h3><p><strong>What it does:</strong> <code>grep</code> searches app.log without case sensitivity because of <code>-i</code>. The pipe <code>|</code> sends matching lines directly to <code>head</code>, which displays the first 20.</p><p class="command-why"><strong>Why use it:</strong> Use a pipe to build a focused workflow from small tools, such as searching a large log and limiting the amount displayed.</p><p><strong>Read the syntax:</strong> The command left of <code>|</code> produces output; the command right of it receives that output as input. <code>-n 20</code> sets the line limit.</p></article><article class="card">' + codeCard("Save a command result", "ss -tuln > listening-sockets.txt") + '<h3>Example of output redirection</h3><p><strong>What it does:</strong> <code>ss -tuln</code> lists local listening TCP and UDP sockets; <code>&gt;</code> writes the result to a file and replaces that file if it already exists.</p><p class="command-why"><strong>Why use it:</strong> Save a local snapshot for later comparison; choose a new disposable filename so useful work is not overwritten.</p><p><strong>Read the syntax:</strong> <code>-t</code> selects TCP, <code>-u</code> UDP, <code>-l</code> listening sockets, and <code>-n</code> numeric output. The filename after <code>&gt;</code> is the destination.</p></article></div>' +
       '<div class="section-head"><h2>Read command results in context</h2><span class="minor">A SHORT FIELD ROUTINE</span></div>' +
       '<div class="grid two"><article class="card"><h3>Know where you are</h3><p>Confirm the working directory and the user before using a relative path or an administrative command.</p></article><article class="card"><h3>Inspect, then filter</h3><p>Start with a small output sample. Use a narrow search term or line count before scanning a large log.</p></article><article class="card"><h3>Check permissions</h3><p>In <code>ls -l</code>, read owner, group, and permission bits. Grant only the access needed for the task.</p></article><article class="card"><h3>Protect logs and data</h3><p>Logs can contain names, tokens, paths, or other sensitive data. Keep practice output synthetic and store captures or logs only as policy allows.</p></article></div>' +
       lessonBlock("01", "Check your understanding", '<details><summary>How can you leave a file viewer such as less?</summary><div class="details-body">Press q to quit and return to the shell.</div></details><details><summary>What should you check before removing a file?</summary><div class="details-body">Confirm the current directory and the exact file path, and make sure the file is disposable.</div></details>') +
@@ -650,19 +663,19 @@
   }
 
   function renderWebOverview() {
-    return lessonHeader("Web security / 06", "Web vulnerabilities", "Six common weaknesses, taught through where they arise, how the failure happens, what to review safely, and how to prevent it.", "06") +
-      '<div class="note neutral"><span>These lessons use general software examples and synthetic data. The Practice Bench compares request handling and server decisions without connecting to real services.</span></div><button class="btn btn-small" type="button" data-go="demo-lab">Open the Practice Bench&nbsp; →</button>' +
+    return lessonHeader("Web security / 06", "Web vulnerabilities", "Four common weaknesses, taught through where they arise, how the failure happens, what to review safely, and how to prevent it.", "06") +
+      '<section class="dvwb-launch dvwb-launch-top"><div><p class="eyebrow">INTERACTIVE PRACTICE / FOUR TRAINING LABS</p><h2>Ready to apply what you learned?</h2><p>Open the deliberately vulnerable web application and investigate the same four weaknesses using its fictional accounts, records, and pages.</p></div><a class="btn" href="' + esc(dvwbUrl) + '" target="_blank" rel="noopener">Open the DVWB <span aria-hidden="true">↗</span></a></section>' +
       '<div class="section-head"><h2>The review loop</h2><span class="minor">REPEAT THESE QUESTIONS</span></div>' +
       '<div class="grid">' +
       '<article class="principle"><span class="principle-num">01 / SURFACE</span><h3>Where does trust cross?</h3><p>Find the input, object, file, or action that crosses into a protected system boundary.</p></article>' +
-      '<article class="principle"><span class="principle-num">02 / FAILURE</span><h3>What check is missing?</h3><p>Trace the behavior to the parser, filesystem, process, browser, or authorization rule.</p></article>' +
+      '<article class="principle"><span class="principle-num">02 / FAILURE</span><h3>What check is missing?</h3><p>Trace the behavior to the database, filesystem, or authorization rule.</p></article>' +
       '<article class="principle"><span class="principle-num">03 / CONTROL</span><h3>Where is it enforced?</h3><p>Prefer controls that keep data separate and let the server verify each request.</p></article></div>' +
-      '<div class="section-head"><h2>Six lessons</h2><span class="minor">SELECT A TOPIC TO OPEN ITS FIELD NOTE</span></div>' +
-      '<div class="grid">' + vulnerabilities.map(function (v, i) {
+      '<div class="section-head"><h2>Four lessons</h2><span class="minor">SELECT A TOPIC TO OPEN ITS FIELD NOTE</span></div>' +
+      '<div class="grid course-list">' + vulnerabilities.map(function (v, i) {
         return '<button class="card course-card" type="button" data-go="' + v.route + '"><span class="course-index">WEB 0' + (i + 1) + " / " + esc(v.category.toUpperCase()) + '</span><h3>' + esc(v.name) + '<span class="impact ' + (v.impact === "Medium" ? "medium" : "") + '">' + esc(v.impact) + "</span></h3><p>" + esc(v.one) + '</p><span class="card-foot"><span>CONTROL: ' + esc(v.control.toUpperCase()) + '</span><span>OPEN ↗</span></span></button>';
       }).join("") + "</div>" +
       '<div class="section-head"><h2>Three defensive principles</h2><span class="minor">A USEFUL DEFAULT FOR EVERY FEATURE</span></div>' +
-      '<div class="grid"><article class="principle"><span class="principle-num">A / INPUT</span><h3>Treat input as data</h3><p>Keep user values separate from query, shell, path, and markup instructions.</p></article><article class="principle"><span class="principle-num">B / SERVER</span><h3>Verify each request</h3><p>Authorization belongs at the server boundary and must cover each object and action.</p></article><article class="principle"><span class="principle-num">C / ACCESS</span><h3>Limit what can happen</h3><p>Use narrow permissions for application accounts, processes, and stored data.</p></article></div>';
+      '<div class="grid"><article class="principle"><span class="principle-num">A / INPUT</span><h3>Treat input as data</h3><p>Keep user values separate from query instructions or filesystem paths.</p></article><article class="principle"><span class="principle-num">B / SERVER</span><h3>Verify each request</h3><p>Authorization belongs at the server boundary and must cover each object and action.</p></article><article class="principle"><span class="principle-num">C / ACCESS</span><h3>Limit what can happen</h3><p>Use narrow permissions for service accounts and stored data.</p></article></div>';
   }
 
   function miniSiteDocument(v) {
@@ -679,21 +692,19 @@
       "function add(parent,tag,cls,text){var n=node(tag,cls,text);parent.appendChild(n);return n;}",
       "function card(title,body,kindName){var c=node('article','site-card');if(kindName)add(c,'span','site-label',kindName);add(c,'h3','',title);if(body)add(c,'p','',body);return c;}",
       "function note(title,body,tone){var n=node('div','site-notice '+(tone||''));add(n,'strong','',title);add(n,'p','',body);return n;}",
-      "function queryPath(){var val=field?field.value:'';if(kind==='sqli')return pagePath+'?term='+encodeURIComponent(val);if(kind==='idor')return '/members/'+encodeURIComponent(val);if(kind==='traversal')return pagePath+'?file='+encodeURIComponent(val);if(kind==='xss')return pagePath+'?q='+encodeURIComponent(val);if(kind==='cmdi')return pagePath+'?arg='+encodeURIComponent(val);return pagePath+'?role='+encodeURIComponent(role.value)+'&action='+encodeURIComponent(action.value);}",
+      "function queryPath(){var val=field?field.value:'';if(kind==='sqli')return pagePath+'?term='+encodeURIComponent(val);if(kind==='idor')return '/members/'+encodeURIComponent(val);if(kind==='traversal')return pagePath+'?file='+encodeURIComponent(val);if(kind==='xss')return pagePath+'?q='+encodeURIComponent(val);return pagePath+'?role='+encodeURIComponent(role.value)+'&action='+encodeURIComponent(action.value);}",
       "function hasTautology(v){return /\\bOR\\s+['\\\"]?1['\\\"]?\\s*=\\s*['\\\"]?1['\\\"]?/i.test(v);}",
       "function outcome(){var v=field?field.value:'';if(kind==='sqli'){if(vulnerable&&hasTautology(v))return {state:'exposed',title:'Query changed · 3 products returned',body:'The search condition became true for every item in this synthetic shop.'};if(!vulnerable)return {state:'safe',title:'Protected search · 0 matches',body:'The complete input is treated as one product name.'};return {state:'neutral',title:'No matching products',body:'Try the loaded sample or a product name.'};}",
       "if(kind==='idor'){if(v==='record-101')return {state:'safe',title:'Your profile',body:'Member A · My saved post'};if(v==='record-102'&&vulnerable)return {state:'exposed',title:'Another member profile exposed',body:'Member B · Private post (fictional sample)'};if(v==='record-102')return {state:'blocked',title:'403 · Profile access denied',body:'The signed-in member does not own this profile.'};return {state:'neutral',title:'404 · Profile not found',body:'No matching profile exists in the fictional profile store.'};}",
       "if(kind==='traversal'){var climbs=v.split(/[\\\\/]+/).some(function(part){return part==='..';});if(climbs&&vulnerable)return {state:'exposed',title:'Private lesson note displayed',body:'Instructor review notes · synthetic sample only'};if(climbs)return {state:'blocked',title:'403 · Outside lesson library',body:'The resolved path is not contained in the public materials folder.'};if(v.trim()==='lesson.txt')return {state:'safe',title:'Public lesson opened',body:'Welcome to the course materials library.'};return {state:'neutral',title:'404 · File not found',body:'Try lesson.txt or the preloaded sample.'};}",
       "if(kind==='bac'){if(action.value==='read')return {state:'safe',title:'Public page opened',body:'This page is available to Student and Instructor.'};if(vulnerable)return {state:'exposed',title:'Settings saved · authorization missing',body:'The simulated Student session was allowed to manage site settings.'};if(role.value==='instructor')return {state:'safe',title:'Settings saved',body:'Instructor permission was checked successfully.'};return {state:'blocked',title:'403 · Permission required',body:'Student does not have manage-site permission.'};}",
       "if(kind==='xss'){var markup=/<[a-z][^>]*>/i.test(v), alertText=v.match(/alert\\s*\\(\\s*(['\\\"])(.*?)\\1\\s*\\)/i);if(markup&&vulnerable)return {state:'exposed',title:'Search result reflected unsafely',body:v,alert:alertText?alertText[2]:''};if(markup)return {state:'safe',title:'Search value displayed as text',body:v};return {state:'neutral',title:'Search results',body:v||'Enter a course or sample text.'};}",
-      "var split=/;|&&|\\|\\||\\|/.test(v);if(split&&vulnerable)return {state:'exposed',title:'Two synthetic operations shown',body:'service status: training-online\\nsecond operation: [simulated output]'};if(split)return {state:'blocked',title:'400 · Argument rejected',body:'A shell separator was blocked. No process was started.'};return {state:'safe',title:'Service available',body:'The value was treated as one literal argument.'};}",
       "function render(){var o=outcome();badge.textContent=o.title;badge.className='site-status '+o.state;address.textContent=queryPath();result.replaceChildren();",
       "if(kind==='sqli'){result.appendChild(note(o.title,o.body,o.state));if(o.state==='exposed'){var grid=node('div','site-grid');[['Studio headphones','$48 · Audio'],['Compact keyboard','$32 · Accessories'],['Travel speaker','$56 · Audio']].forEach(function(x){grid.appendChild(card(x[0],x[1]));});result.appendChild(grid);}else result.appendChild(card('Product search',o.body,'SEARCH RESPONSE'));}",
       "else if(kind==='idor')result.appendChild(card(o.title,o.body,'MEMBER PROFILE'));",
       "else if(kind==='traversal'){result.appendChild(note(o.title,o.body,o.state));if(o.state==='exposed'||o.state==='safe')result.appendChild(card(o.state==='exposed'?'Instructor review notes':'Welcome to the public lesson',o.body,o.state==='exposed'?'PRIVATE SAMPLE':'PUBLIC LESSON'));}",
       "else if(kind==='bac')result.appendChild(note(o.title,o.body,o.state));",
       "else if(kind==='xss'){var reflected=card(o.title,o.body,'SEARCH RESULT');reflected.classList.add('reflected');result.appendChild(reflected);if(o.state==='exposed'&&o.alert){var dialog=node('div','site-alert');add(dialog,'span','site-label','SIMULATED BROWSER ALERT');add(dialog,'strong','','forgefracture.test says');add(dialog,'p','',o.alert);result.appendChild(dialog);}}",
-      "else{result.appendChild(note(o.title,o.body,o.state));if(o.state==='exposed')result.appendChild(card('Service output','service status: training-online\\nprocess identity: app-user','SIMULATED OUTPUT'));}",
       "}",
       "document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){vulnerable=b.getAttribute('data-mode')==='vulnerable';document.querySelectorAll('[data-mode]').forEach(function(x){var on=x===b;x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});render();});});",
       "if(kind==='bac'){role=document.getElementById('role');action=document.getElementById('action');role.addEventListener('change',render);action.addEventListener('change',render);}",
@@ -733,8 +744,8 @@
   }
 
   function renderDemoLab() {
-    return lessonHeader("Practice / Local scenarios", "Practice Bench", "Work through six small application scenarios. Edit a concrete sample and watch the practice app update immediately; switch server policy to compare.", "LAB") +
-      '<div class="note neutral"><span>Every scenario runs as an in-page teaching model with synthetic records. The examples are concrete; no input is sent to a website, and no SQL, script, file access, or shell command is executed.</span></div>' +
+    return lessonHeader("Practice / Local scenarios", "Practice Bench", "Work through four small application scenarios. Edit a concrete sample and watch the practice app update immediately; switch server policy to compare.", "LAB") +
+      '<div class="note neutral"><span>Every scenario runs as an in-page teaching model with synthetic records. The examples are concrete; no input is sent to an external website, no local files are opened, and no browser script is executed.</span></div>' +
       '<div class="section-head"><h2>Choose a scenario</h2><span class="minor">REQUEST → DECISION → RESPONSE</span></div>' +
       vulnerabilities.map(function (v, i) {
         return '<section class="demo-lab-section" id="demo-' + v.id + '"><div class="demo-lab-heading"><span class="course-index">SCENARIO 0' + (i + 1) + '</span><h2>' + esc(v.name) + '</h2><p>' + esc(v.one) + '</p></div>' + renderDemo(v) + '</section>';
@@ -750,16 +761,17 @@
     var surfaces = '<ul class="check-list">' + v.surfaces.map(function (item) { return '<li><strong>' + esc(item[0]) + '</strong> — ' + esc(item[1]) + '</li>'; }).join("") + '</ul>';
     var impacts = '<ul class="check-list">' + v.why.map(function (item) { return '<li>' + esc(item) + '</li>'; }).join("") + '</ul>';
     var misses = '<ul class="check-list mistake-list">' + v.misses.map(function (item) { return '<li>' + esc(item) + '</li>'; }).join("") + '</ul>';
+    var extra = '<div class="extra-points">' + v.extra.map(function (item) { return '<article><h3>' + esc(item[0]) + '</h3><p>' + esc(item[1]) + '</p></article>'; }).join("") + '</div>';
     return lessonHeader("Web vulnerabilities / Lesson " + String(index).padStart(2, "0"), esc(v.name) + '<span class="impact ' + (v.impact === "Medium" ? "medium" : "") + '">' + esc(v.impact) + " impact</span>", v.one, String(index).padStart(2, "0")) +
       '<div class="lesson-layout lesson-single"><div class="lesson-main">' +
       lessonBlock("01", "The weakness", "<p>" + esc(v.what) + "</p>") +
       lessonBlock("02", "What happens in the app", flow) +
       lessonBlock("03", "Verify and prevent it", prevention) +
-      infoDisclosure("More detail: where it appears", surfaces) +
-      infoDisclosure("More detail: possible impact", impacts) +
+      lessonBlock("04", "More points to understand", extra) +
+      infoDisclosure("Common locations", surfaces) +
+      infoDisclosure("Possible impact", impacts) +
       infoDisclosure("Common review misses", misses) +
       "</div></div>" +
-      '<section class="lesson-demo-section" id="demo-window-' + v.id + '"><div class="lesson-demo-heading"><p class="eyebrow">HANDS-ON WEBSITE / ' + esc(v.name.toUpperCase()) + '</p></div>' + renderDemo(v) + '</section>' +
       lessonActions(index < vulnerabilities.length ? vulnerabilities[index].route : "compare");
   }
 
@@ -771,14 +783,12 @@
         ["IDOR", "User → data object", "Per-object authorization", "Does the server check this user may access this record?"],
         ["Path Traversal", "Input → filesystem", "Canonical path containment", "Does the resolved path stay inside the approved directory?"],
         ["Broken Access Control", "Role → action", "Server-side permission checks", "Is every operation checked against an explicit permission?"],
-        ["Reflected XSS", "Request → browser markup", "Context-aware output encoding", "Is output encoded for the context where it appears?"],
-        ["Command Injection", "Input → operating-system process", "Structured process arguments", "Can input be interpreted as shell syntax?"]
       ].map(function (r) {
         return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td><td>" + r[3] + "</td></tr>";
       }).join("") + "</tbody></table></div>" +
       '<div class="section-head"><h2>Which control addresses which problem?</h2><span class="minor">DESIGN PRINCIPLES</span></div>' +
-      '<div class="grid two"><article class="card"><h3>Separate data from instructions</h3><p>Use parameters for database values, structured arguments for processes, and context-aware output encoding for browser content.</p></article><article class="card"><h3>Check identity and permission</h3><p>Authentication identifies the requester. Server-side authorization determines which objects and actions are allowed.</p></article><article class="card"><h3>Confine the resource</h3><p>Resolve file paths and prove they remain inside the intended directory. Limit the process’s access as a second layer.</p></article><article class="card"><h3>Fail closed and record</h3><p>Deny access when a permission rule is missing. Log useful security events without exposing sensitive values.</p></article></div>' +
-      lessonBlock("01", "Review checklist", list(["Identify every trust boundary: user input, stored object, file path, process, or role.", "Find the control that runs on the server at the point of use.", "Check whether the control applies consistently across reads, changes, and alternate paths.", "Use synthetic data and explicit written permission for all hands-on assessment."])) +
+      '<div class="grid two"><article class="card"><h3>Separate data from instructions</h3><p>Use parameterized queries to keep database values separate from SQL instructions.</p></article><article class="card"><h3>Check identity and permission</h3><p>Authentication identifies the requester. Server-side authorization determines which objects and actions are allowed.</p></article><article class="card"><h3>Confine the resource</h3><p>Resolve file paths and prove they remain inside the intended directory. Limit the application’s data and filesystem access as a second layer.</p></article><article class="card"><h3>Fail closed and record</h3><p>Deny access when a permission rule is missing. Log useful security events without exposing sensitive values.</p></article></div>' +
+      lessonBlock("01", "Review checklist", list(["Identify every trust boundary: user input, stored object, file path, or role.", "Find the control that runs on the server at the point of use.", "Check whether the control applies consistently across reads, changes, and alternate paths.", "Use synthetic data and explicit written permission for all hands-on assessment."])) +
       '<div class="lesson-actions"><button class="next-btn" type="button" data-go="quickref">Open quick reference&nbsp; →</button><button class="next-btn" type="button" data-go="web">Back to vulnerability lessons</button></div>';
   }
 
@@ -859,6 +869,15 @@
     if (!pages[id]) id = "overview";
     closeMenu();
     main.innerHTML = pages[id]();
+    main.querySelectorAll("details").forEach(function (detail) {
+      var summary = detail.querySelector("summary");
+      var answer = detail.querySelector(".details-body");
+      var note = document.createElement("article");
+      note.className = "knowledge-answer";
+      note.innerHTML = (summary ? '<h3>' + summary.innerHTML + '</h3>' : "") + (answer ? answer.innerHTML : "");
+      detail.replaceWith(note);
+    });
+    appendLessonContext(id);
     main.querySelectorAll(".demo-shell").forEach(simulateDemo);
     main.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -1193,23 +1212,6 @@
           uiAppend(alertBox, "small", "", "Browser alert effect · simulated, not executed");
         }
       }
-    } else if (id === "cmdi") {
-      appHeading(page, "SYSTEM TOOLS", "Service status", "Check whether the training lookup service is available.");
-      var utility = uiAppend(page, "div", "app-utility-card");
-      uiAppend(utility, "span", "app-card-meta", "LOOKUP UTILITY");
-      var commandEntry = uiAppend(utility, "div", "app-live-entry");
-      uiAppend(commandEntry, "span", "app-live-field-title", "Utility argument · enter a sample here");
-      appLiveInput(commandEntry, "Utility argument · enter a sample here", value, "app-inline-input app-command-input");
-      if (result.state === "exposed") {
-        appNotice(utility, "notice-success", "Utility output", "Synthetic response from the vulnerable command-string model.");
-        var terminal = uiAppend(utility, "pre", "app-terminal");
-        terminal.textContent = "service status: training-online\nprocess identity: app-user";
-      } else if (result.state === "blocked") {
-        appNotice(utility, "notice-error", "Request rejected", "The argument contains a command separator. No process was started.");
-      } else {
-        appNotice(utility, "notice-success", "Service available", "The argument was treated as one literal value.");
-        uiAppend(utility, "pre", "app-terminal", "service status: training-online");
-      }
     }
   }
   function makeRawRequest(id, value, shell) {
@@ -1228,11 +1230,6 @@
       headers[3] = "X-Practice-Role: " + (role === "student" ? "Student" : "Instructor");
       headers.push("Content-Type: application/json");
       body = JSON.stringify({ action: action === "manage" ? "manage-settings" : "read-public-lesson" });
-    }
-    if (id === "cmdi") {
-      method = "POST"; path = "/practice/lookup";
-      headers.push("Content-Type: application/json");
-      body = JSON.stringify({ argument: value });
     }
     return method + " " + path + " HTTP/1.1\n" + headers.join("\n") + (body ? "\nContent-Length: " + new TextEncoder().encode(body).length + "\n\n" + body : "\n\n");
   }
@@ -1260,16 +1257,11 @@
       var reflected = result.state === "exposed" ? value : safeValue;
       return "<!doctype html>\n<html><body><main><h1>Search</h1><form><input name=\"q\" value=\"" + (result.state === "exposed" ? value.replace(/"/g, "&quot;") : safeValue) + "\"></form><section><h2>Results for: " + reflected + "</h2><p>No matching course was found.</p></section></main></body></html>";
     }
-    if (id === "cmdi") {
-      if (result.state === "blocked") return JSON.stringify({ error: "invalid_argument", message: "Command separator is not allowed" }, null, 2);
-      if (result.state === "exposed") return JSON.stringify({ status: "training-online", identity: "app-user" }, null, 2);
-      return JSON.stringify({ status: "training-online" }, null, 2);
-    }
     return "";
   }
   function makeRawResponse(id, value, result) {
     var reason = { 200: "OK", 400: "Bad Request", 403: "Forbidden", 404: "Not Found" }[result.statusCode] || "OK";
-    var type = ["idor", "bac", "cmdi"].indexOf(id) >= 0 ? "application/json" : "text/html; charset=utf-8";
+    var type = ["idor", "bac"].indexOf(id) >= 0 ? "application/json" : "text/html; charset=utf-8";
     var body = responseBody(id, value, result);
     var headers = ["Content-Type: " + type, "Cache-Control: no-store", "X-Content-Type-Options: nosniff", "Content-Length: " + new TextEncoder().encode(body).length];
     if (id === "xss" && !result.unsafe) headers.push("Content-Security-Policy: default-src 'none'; style-src 'self'; form-action 'self'");
@@ -1399,28 +1391,8 @@
         result.response = "200 OK\nSearch result for: " + value;
         result.trace = ["The request includes a search value.", "The teaching model finds no tag-shaped markup.", "The response contains ordinary text."];
       }
-    } else if (id === "cmdi") {
-      var hasSeparator = /;|&&|\|\||\|/.test(value);
-      result.request = "POST /practice/lookup\nargument = " + value;
-      if (hasSeparator && unsafe) {
-        var commands = value.split(/;|&&|\|\|/).map(function (part) { return part.trim(); }).filter(Boolean);
-        result.state = "exposed"; result.status = "COMMAND SPLIT SIMULATED";
-        result.decision = "The vulnerable model builds one shell string, so the separator is treated as control syntax and splits the sample into multiple operations.";
-        result.response = "200 OK · simulated output only\n" + commands.map(function (command) { return "$ " + command + " → [synthetic output]"; }).join("\n") + "\n\nNo command was executed.";
-        result.trace = ["The request supplies an argument to a utility.", "The vulnerable design concatenates it into shell command text.", "The semicolon is interpreted as a command separator in the model.", "Synthetic output is shown; no operating-system process starts."];
-      } else if (hasSeparator) {
-        result.state = "blocked"; result.status = "INPUT REJECTED";
-        result.decision = "The defended policy rejects shell control characters and uses a fixed executable with a separate argument list.";
-        result.response = "400 Bad Request\nThe sample contains a shell control separator.\nNo process was started.";
-        result.trace = ["The request supplies a utility argument.", "The server validates against a narrow allow-list.", "The separator is rejected before process creation.", "No operating-system process starts."];
-      } else {
-        result.state = "allowed"; result.status = "ONE ARGUMENT";
-        result.decision = "The value contains no recognized separator and remains one argument to the fixed operation.";
-        result.response = "200 OK · simulated lookup\nargument treated literally: " + value;
-        result.trace = ["The request supplies one utility argument.", "The server keeps the executable fixed.", "The value remains one argument; the model does not start a process."];
-      }
     }
-    if (result.state === "blocked") result.statusCode = id === "cmdi" ? 400 : 403;
+    if (result.state === "blocked") result.statusCode = 403;
     if (result.status === "NOT FOUND") result.statusCode = 404;
     result.request = makeRawRequest(id, value, shell);
     shell.setAttribute("data-demo-state", result.state);

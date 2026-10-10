@@ -1,0 +1,22 @@
+[Unit]
+Description=Forge & Fracture deliberately vulnerable training portal
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/forge-fracture-training-site
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=DVWB_DATABASE_URL=sqlite:////var/lib/forge-fracture/dvwb.sqlite3
+ExecStart=/opt/forge-fracture-venv/bin/uvicorn dvwb.app:app --host 127.0.0.1 --port 8002
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/forge-fracture
+
+[Install]
+WantedBy=multi-user.target

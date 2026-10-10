@@ -1,144 +1,153 @@
 # Forge & Fracture — Security Field Manual
 
-A self-contained cybersecurity learning site built with plain HTML, CSS, and JavaScript. It needs no framework, package manager, database, or build step.
+A cybersecurity field guide and a separate FastAPI + SQLAlchemy + SQLite deliberately vulnerable web application (DVWB). The guide teaches networking, Linux tools, and the four web vulnerability topics practiced in the DVWB: SQL injection, IDOR, path traversal, and broken access control.
 
-## What is included
+The DVWB uses fictional training records and intentionally contains those four weaknesses. It is designed for a private, authorized workshop network. Do not expose it to the public internet or a production network.
 
-- Networking chapters for addressing and subnets, routing and gateways, DNS/ports/protocols, and troubleshooting
-- Foundation lessons for Nmap, Zenmap, Wireshark, and Linux essentials
-- Six web vulnerability lessons with definitions, review guidance, defenses, and small embedded practice websites
-- A Practice Bench with synthetic vulnerable-versus-defended application models
+## Run locally on Windows
 
-The practice pages run entirely in the browser. They do not send requests to a target, use a database, execute entered scripts, access server files, or run operating-system commands. They are learning simulations, not live vulnerable services.
+From the repository folder, install the Python dependencies once:
 
-## Open locally
-
-Open `index.html` in a current browser. For the most reliable local behavior, serve the folder over HTTP instead of opening the file directly. For example, if Python 3 is already installed:
-
-```bash
-python3 -m http.server 8000
+```cmd
+py -m pip install -r dvwb\requirements.txt
 ```
 
-Then open `http://localhost:8000` on that same computer.
+Open two Command Prompt windows in the repository folder. In the first, start the trainer:
 
-## Install on a Linux server with Nginx
+```cmd
+py -m uvicorn dvwb.trainer:app --host 127.0.0.1 --port 8001
+```
 
-These steps use a Debian- or Ubuntu-based server and assume this Nginx instance is dedicated to this site. If Nginx already hosts other sites, keep their configuration and adapt the server block and site name instead of replacing the default site.
+In the second, start the DVWB:
 
-### 1. Connect to the server
+```cmd
+py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 8002
+```
 
-Open an SSH session using an account with `sudo` access. Update the package list and install Nginx and Git:
+Visit [http://127.0.0.1:8001/](http://127.0.0.1:8001/) for the field guide. Its **Open the DVWB** button opens [http://127.0.0.1:8002/](http://127.0.0.1:8002/). The DVWB SQLite database is created on first start; its default location is `dvwb/dvwb.sqlite3`.
+
+## Deploy both websites on Kali Linux
+
+This deployment runs both applications on the Kali server. Nginx serves the trainer and forwards the DVWB hostname to the DVWB service. The trainer's button is configured to open the DVWB hostname. Both Python services listen only on the server's loopback interface; participants connect through Nginx. Use hostnames that resolve to the Kali server on the isolated workshop network.
+
+### Before you begin
+
+You need:
+
+- A Kali Linux server with administrator access and a static address on the workshop network.
+- Two DNS records (or equivalent internal DNS entries) pointing to that server: one for the trainer and one for the DVWB. The examples below use `trainer.example.test` and `dvwb.example.test`; replace them with names that resolve for every participant device.
+- An isolated workshop network. Do not forward the DVWB to the public internet.
+
+### 1. Install Kali packages and fetch the project
+
+Run these commands on the Kali server:
 
 ```bash
 sudo apt update
-sudo apt install -y nginx git
+sudo apt install -y git nginx python3 python3-venv python3-pip
 sudo systemctl enable --now nginx
+sudo git clone https://github.com/MahendraKumar1202/forge-fracture-training-site.git /opt/forge-fracture-training-site
+sudo chown -R root:root /opt/forge-fracture-training-site
+sudo chmod -R a+rX /opt/forge-fracture-training-site
 ```
 
-Confirm Nginx is running:
+Create an isolated Python environment and install the DVWB requirements:
 
 ```bash
-sudo systemctl status nginx --no-pager
+sudo python3 -m venv /opt/forge-fracture-venv
+sudo /opt/forge-fracture-venv/bin/pip install --upgrade pip
+sudo /opt/forge-fracture-venv/bin/pip install -r /opt/forge-fracture-training-site/dvwb/requirements.txt
 ```
 
-### 2. Download the repository
-
-After the project is published, replace the placeholders with your GitHub username and repository name:
+Create a persistent, service-owned location for the SQLite database:
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
-cd YOUR-REPOSITORY
+sudo install -d -o www-data -g www-data -m 0750 /var/lib/forge-fracture
 ```
 
-Run the next commands from the folder containing `index.html`, `style.css`, `app.js`, and `forgeLogo.png`.
+### 2. Configure both Python services
 
-### 3. Copy the site files into the web directory
+Set the DVWB hostname used by participants in the trainer service configuration. If the example name differs from your DNS entry, update it before installation; use `https://` if you configure TLS:
 
 ```bash
-sudo install -d -m 0755 /var/www/forge-fracture
-sudo install -m 0644 index.html style.css app.js forgeLogo.png /var/www/forge-fracture/
+sudo nano /opt/forge-fracture-training-site/deploy/kali/forge-fracture-trainer.service
 ```
 
-The files are owned by the administrator and readable by Nginx. No executable permission is needed for the site files.
+Edit the `Environment=DVWB_PUBLIC_URL=...` line. The trainer reads this setting when it serves the page, so its **Open the DVWB** button will point to the Kali server's DVWB hostname rather than to localhost.
 
-### 4. Configure the Nginx site
-
-Create a site configuration:
+Install the included systemd service definitions:
 
 ```bash
-sudo tee /etc/nginx/sites-available/forge-fracture >/dev/null <<'EOF'
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
-
-    root /var/www/forge-fracture;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ =404;
-    }
-
-    location ~ /\. {
-        deny all;
-    }
-}
-EOF
+sudo install -o root -g root -m 0644 /opt/forge-fracture-training-site/deploy/kali/forge-fracture-trainer.service /etc/systemd/system/
+sudo install -o root -g root -m 0644 /opt/forge-fracture-training-site/deploy/kali/forge-fracture-dvwb.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now forge-fracture-trainer.service forge-fracture-dvwb.service
 ```
 
-Enable this site as the default for a dedicated Nginx instance, replacing the packaged welcome-site link if it exists:
+The services run as `www-data`, listen only on `127.0.0.1` ports 8001 and 8002, and restart after a failure. The trainer service reads its configured DVWB URL, and the DVWB database persists in `/var/lib/forge-fracture/dvwb.sqlite3`.
+
+### 4. Configure Nginx for both hostnames
+
+Copy the example Nginx configuration, then replace both example hostnames and the example participant subnet with your workshop's actual DNS names and private network range. The `allow` line must match the participants' source subnet; the following `deny all` prevents other clients from reaching the intentionally vulnerable DVWB.
 
 ```bash
-sudo rm -f /etc/nginx/sites-enabled/default
+sudo install -o root -g root -m 0644 /opt/forge-fracture-training-site/deploy/kali/forge-fracture.nginx /etc/nginx/sites-available/forge-fracture
+sudo nano /etc/nginx/sites-available/forge-fracture
+```
+
+Enable the site and validate the configuration:
+
+```bash
 sudo ln -s /etc/nginx/sites-available/forge-fracture /etc/nginx/sites-enabled/forge-fracture
-```
-
-### 5. Check and reload Nginx
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-curl -I http://127.0.0.1
-```
-
-The response should show a successful HTTP status. From another device that can reach the server, open `http://SERVER-IP` in a browser. Replace `SERVER-IP` with the server's address. If a firewall is enabled, allow inbound TCP port 80 only on the network where you intend to provide access.
-
-### 6. Optional: use a domain and HTTPS
-
-For access beyond a trusted local network, point a domain you control to the server, allow the required web traffic through the firewall, and configure HTTPS with a certificate. Follow the current [Ubuntu Server TLS certificate guide](https://ubuntu.com/server/docs/how-to/security/obtain-tls-certificates/) and [Nginx configuration guide](https://ubuntu.com/server/docs/how-to/web-services/configure-nginx/). Do not expose a management interface or unrelated services as part of this site setup.
-
-## Update the installation
-
-In the cloned repository, retrieve the latest version and copy the static files again:
-
-```bash
-git pull --ff-only
-sudo install -m 0644 index.html style.css app.js forgeLogo.png /var/www/forge-fracture/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+Keep any existing Nginx sites; do not remove their configuration. Do not expose ports 8001 or 8002 to the network. Only Nginx should accept participant traffic, with the DVWB hostname restricted to the workshop subnet.
+
+### 5. Check the two sites
+
+On the Kali server, check both services and Nginx:
+
+```bash
+sudo systemctl --no-pager --full status forge-fracture-trainer forge-fracture-dvwb nginx
+curl -sS -o /dev/null -w '%{http_code}\n' -H 'Host: trainer.example.test' http://127.0.0.1/
+curl -sS -o /dev/null -w '%{http_code}\n' -H 'Host: dvwb.example.test' http://127.0.0.1/
+```
+
+From a participant device on the workshop network, open `http://trainer.example.test/`, then select **Open the DVWB**. It should open `http://dvwb.example.test/` and display the DVWB login page. If the sites use HTTPS, use the HTTPS URLs and set the trainer's DVWB URL to HTTPS as described above.
+
+### 6. Optional HTTPS
+
+For names with valid public DNS and certificate validation, install Certbot and obtain certificates for both hostnames. Use the current Kali/Debian Certbot package instructions and verify that the DVWB subnet restriction remains in the Nginx TLS server block. For an internal-only workshop, use the organization's internal certificate authority. Do not make the vulnerable DVWB publicly reachable just to obtain a certificate.
+
+## Update the Kali installation
+
+Run on the Kali server after changes are pushed to the repository:
+
+```bash
+sudo git -C /opt/forge-fracture-training-site pull --ff-only
+sudo /opt/forge-fracture-venv/bin/pip install -r /opt/forge-fracture-training-site/dvwb/requirements.txt
+sudo systemctl restart forge-fracture-trainer forge-fracture-dvwb
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+The DVWB URL remains configured in `/etc/systemd/system/forge-fracture-trainer.service`; the local SQLite database and Nginx configuration are outside the Git checkout and remain in place during updates. If the hostname changes, edit that service's `DVWB_PUBLIC_URL`, then run `sudo systemctl daemon-reload && sudo systemctl restart forge-fracture-trainer`.
 
 ## Troubleshooting
 
-- `sudo nginx -t` reports configuration errors: review the site file in `/etc/nginx/sites-available/forge-fracture` and correct the reported line.
-- The Nginx welcome page still appears: check that the `forge-fracture` link exists in `/etc/nginx/sites-enabled/`, then run `sudo nginx -t` and reload Nginx.
-- The page loads without styling or behavior, or the logo is missing: confirm `index.html`, `style.css`, `app.js`, and `forgeLogo.png` are all present in `/var/www/forge-fracture/` and that their names match exactly.
-- To inspect recent Nginx errors, run `sudo tail -n 50 /var/log/nginx/error.log`.
+- View service logs with `sudo journalctl -u forge-fracture-trainer -u forge-fracture-dvwb -n 100 --no-pager`.
+- Check the Nginx error log with `sudo tail -n 50 /var/log/nginx/error.log`.
+- If the trainer opens but its DVWB button points to localhost, correct `DVWB_PUBLIC_URL` in `/etc/systemd/system/forge-fracture-trainer.service`, then run `sudo systemctl daemon-reload && sudo systemctl restart forge-fracture-trainer` and refresh the browser.
+- If Nginx returns `502 Bad Gateway`, check that both systemd services are active and listening locally on ports 8001 and 8002.
+- If only the trainer hostname works, check DNS for the DVWB hostname, the Nginx `server_name`, and the workshop subnet allowlist.
 
-## Edit the site
+## Repository layout
 
-- `index.html` contains the page shell and navigation landmarks.
-- `style.css` contains the visual system and responsive layout.
-- `app.js` contains the lessons, practice simulations, navigation, search, and interactions.
-- `forgeLogo.png` is the site logo image used in the sidebar and header.
+- `index.html`, `style.css`, `app.js`, and `forgeLogo.png` — trainer website
+- `dvwb/trainer.py` — FastAPI host for the trainer website
+- `dvwb/app.py` — FastAPI DVWB backed by SQLAlchemy and SQLite
+- `dvwb/training_files/` — fictional public and confidential text files
+- `deploy/kali/` — Kali systemd and Nginx configuration examples
 
-## References
-
-- [Ubuntu Server: install Nginx](https://ubuntu.com/server/docs/how-to-install-nginx/)
-- [Ubuntu Server: configure Nginx](https://ubuntu.com/server/docs/how-to/web-services/configure-nginx/)
-- [Nginx Beginner’s Guide](https://nginx.org/en/docs/beginners_guide.html)
-- [PortSwigger Web Security Academy](https://portswigger.net/web-security/all-labs)
-- [OWASP WebGoat](https://owasp.org/www-project-webgoat/)
-- [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/)
-
-Use active testing only on systems explicitly permitted by the relevant rules or by written authorization.
+Use active testing only on systems for which the relevant rules or written authorization permit it.
