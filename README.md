@@ -3,7 +3,7 @@
 This repository contains two connected websites:
 
 1. **Trainer** — a field guide covering networking, Nmap, Zenmap, Wireshark, Linux commands, and four web vulnerability topics.
-2. **DVWB** — a separate FastAPI application using SQLAlchemy and SQLite. Participants enter through its login page and explore fictional event workflows. Its intentionally vulnerable exercises cover SQL injection, IDOR, path traversal, and broken access control. The President portal contains fictional confidential documents and double-octal encoded `AXA {…}` markers.
+2. **DVWB** — a separate FastAPI application using SQLAlchemy and SQLite. Participants enter through its login page and explore fictional event workflows. Its intentionally vulnerable exercises cover SQL injection at login and in searches, IDOR, path traversal, and broken access control. The President portal contains fictional confidential documents and double-octal encoded `AXA {…}` markers.
 
 The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 9000 (trainer) and 9001 (DVWB). Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
 
@@ -86,7 +86,7 @@ systemctl --user restart forge-fracture-training-trainer forge-fracture-training
 systemctl --user --no-pager --full status forge-fracture-training-trainer forge-fracture-training-dvwb
 ```
 
-Participant URLs are `http://YOUR-KALI-IP:9000/` for the field guide and `http://YOUR-KALI-IP:9001/` for the DVWB. Permit TCP 9000 and 9001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data.
+Participant URLs are `http://YOUR-KALI-IP:9000/` for the field guide and `http://YOUR-KALI-IP:9001/` for the DVWB. Permit TCP 9000 and 9001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data. The login SQL-injection exercise stores the public demo passwords in a dedicated plaintext training column; this is deliberately unsafe and must never be copied into a real application.
 
 Built-in demo accounts are recreated when the DVWB starts: `participant.asha`, `participant.rohan`, `participant.kabir`, `participant.nila`, and `participant.dev` use password `utsav-learn`; `organizer.team` uses `portal-coach`. These are public training credentials, not secure user accounts.
 
@@ -109,7 +109,7 @@ For manual inspection only, `./.venv/bin/python scripts/reset_database.py` perfo
 .venv/bin/python -m pytest -q
 ```
 
-The exploit tests use FastAPI's in-process test client and a disposable SQLite database. They verify the intentionally vulnerable SQL injection, IDOR, path traversal, and broken-access-control exercises; they do not attack a remote host.
+The exploit tests use FastAPI's in-process test client and a disposable SQLite database. They verify multiple SQL-injection login payloads and search variants, IDOR, path traversal, and broken-access-control exercises; they do not attack a remote host.
 
 ## C. Alternative Kali deployment (Nginx hostname-based, loopback services)
 

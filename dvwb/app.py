@@ -15,7 +15,7 @@ from pathlib import Path
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import ForeignKey, String, create_engine, text
+from sqlalchemy import ForeignKey, String, create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from urllib.parse import quote
 
@@ -40,6 +40,8 @@ class Participant(Base):
     username: Mapped[str] = mapped_column(String(60), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(80))
     password_hash: Mapped[str] = mapped_column(String(200))
+    # Fictional plaintext credential exists only to make this isolated SQLi lab realistic.
+    password_plain: Mapped[str] = mapped_column(String(100), default="")
     role: Mapped[str] = mapped_column(String(30), default="participant")
 
 
@@ -92,6 +94,12 @@ def digest(password: str, salt: str) -> str:
 
 def initialize_db() -> None:
     Base.metadata.create_all(engine)
+    # Upgrade existing workshop databases in place. SQLAlchemy create_all does
+    # not add newly introduced columns to an already-created SQLite table.
+    participant_columns = {column["name"] for column in inspect(engine).get_columns("participants")}
+    if "password_plain" not in participant_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE participants ADD COLUMN password_plain VARCHAR(100) NOT NULL DEFAULT ''"))
     with SessionLocal() as db:
         accounts = [
             ("participant.asha", "Asha Nair", "utsav-learn", "participant"),
@@ -106,7 +114,11 @@ def initialize_db() -> None:
             if account is None:
                 salt = secrets.token_hex(16)
                 db.add(Participant(username=username, display_name=display,
-                                   password_hash=f"{salt}${digest(password, salt)}", role=role))
+                                   password_hash=f"{salt}${digest(password, salt)}",
+                                   password_plain=password, role=role))
+            elif account.password_plain != password:
+                # Keep the documented demo credentials in sync after upgrades.
+                account.password_plain = password
         products = [
             ("Utsav Field Journal", "Stationery", "A compact notebook for session notes.", 180),
             ("ACE Signal Pin", "Accessories", "A small enamel portal-community pin.", 120),
@@ -402,7 +414,7 @@ def layout(content: str, user: Participant, active: str = "", lab: str = "") -> 
 def login_view(error: str = "") -> str:
     message = f'<p class="login-error">{esc(error)}</p>' if error else ""
     story = '<section class="login-story"><div class="brand-mark">UTSAV 2026<small>ACE × ASCIEE · PARTICIPANT PORTAL</small></div><div class="story-copy"><p class="eyebrow">PARTICIPANT SERVICES</p><h1>Your event, in one place.</h1><p>Review your registration, workshop selection, event resources and participant updates.</p></div><div class="story-foot">UTSAV 2026 · PARTICIPANT ACCESS</div></section>'
-    form = f'''<section class="login-side"><div class="login-card"><p class="eyebrow">ACCOUNT ACCESS</p><h2>Sign in to Utsav</h2><p class="muted">Enter your participant account details.</p>{message}<form action="/login" method="post"><label class="field">Username<input name="username" autocomplete="username"></label><label class="field">Password<input name="password" type="password" autocomplete="current-password"></label><button class="button wide">Sign in</button></form></div><p class="muted">SQL injection exercises are available in the store and service-centre searches after sign-in.</p></section>'''
+    form = f'''<section class="login-side"><div class="login-card"><p class="eyebrow">ACCOUNT ACCESS</p><h2>Sign in to Utsav</h2><p class="muted">Enter your participant account details.</p>{message}<form action="/login" method="post"><label class="field">Username<input name="username" autocomplete="username"></label><label class="field">Password<input name="password" type="password" autocomplete="current-password"></label><button class="button wide">Sign in</button></form></div><p class="muted">SQL injection exercises are available in this login form and the store and service-centre searches.</p></section>'''
     return chrome("Sign in", f'<main class="login-page">{story}{form}</main>')
 
 
@@ -415,18 +427,21 @@ def home(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 def login(request: Request, username: str = Form(""), password: str = Form("")):
     with SessionLocal() as db:
-        # Authentication itself is kept functional and password-safe. The
-        # intentionally vulnerable SQL-injection exercises live in /store
-        # and /tools, where they operate only on fictional training records.
-        participant = db.query(Participant).filter_by(username=username).first()
-        valid = False
-        if participant and "$" in participant.password_hash:
-            salt, stored_digest = participant.password_hash.split("$", 1)
-            valid = secrets.compare_digest(digest(password, salt), stored_digest)
-        if not valid or participant is None:
+        # INTENTIONAL SQL INJECTION LAB: both fields are interpolated into this
+        # query so classic quote/boolean/comment variations can alter its logic.
+        # Only fictional workshop accounts are stored in this isolated app.
+        statement = text(
+            "SELECT id, username, display_name, role FROM participants "
+            f"WHERE username = '{username}' AND password_plain = '{password}' ORDER BY id LIMIT 1"
+        )
+        try:
+            participant = db.execute(statement).mappings().first()
+        except Exception:
+            participant = None
+        if participant is None:
             return HTMLResponse(login_view("Those details were not recognized."), status_code=401)
         token = secrets.token_urlsafe(32)
-        db.add(PortalSession(token=token, participant_id=participant.id))
+        db.add(PortalSession(token=token, participant_id=participant["id"]))
         db.commit()
     response = RedirectResponse("/dashboard", status_code=303)
     response.set_cookie("utsav_session", token, httponly=True, samesite="lax")
