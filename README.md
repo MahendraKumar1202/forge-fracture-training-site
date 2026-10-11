@@ -5,7 +5,7 @@ This repository contains two connected websites:
 1. **Trainer** — a field guide covering networking, Nmap, Zenmap, Wireshark, Linux commands, and four web vulnerability topics.
 2. **DVWB** — a separate FastAPI application using SQLAlchemy and SQLite. Participants enter through its login page and explore fictional event workflows. Its intentionally vulnerable exercises cover SQL injection at login and in searches, IDOR, path traversal, and broken access control. The President portal contains fictional confidential documents and double-octal encoded `AXA {…}` markers.
 
-The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 9000 (trainer) and 9001 (DVWB). Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
+The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 9002 (trainer) and 9001 (DVWB). Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
 
 ## A. Run both sites locally on Windows
 
@@ -41,7 +41,7 @@ Keep two Command Prompt windows open. Run each command from the repository folde
 In **window 1**, start the trainer:
 
 ```cmd
-py -m uvicorn dvwb.trainer:app --host 127.0.0.1 --port 9000
+py -m uvicorn dvwb.trainer:app --host 127.0.0.1 --port 9002
 ```
 
 In **window 2**, start the DVWB:
@@ -50,7 +50,7 @@ In **window 2**, start the DVWB:
 py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 9001
 ```
 
-Open [http://127.0.0.1:9000/](http://127.0.0.1:9000/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:9001/](http://127.0.0.1:9001/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
+Open [http://127.0.0.1:9002/](http://127.0.0.1:9002/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:9001/](http://127.0.0.1:9001/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
 
 The DVWB creates its local SQLite database at `dvwb/dvwb.sqlite3` on first launch in the manual local-development mode. Do not commit that runtime database. The Kali installer uses `instance/dvwb.sqlite3` by default.
 
@@ -71,7 +71,7 @@ cd ~/forge-fracture-training-site
 bash setup.sh
 ```
 
-Run `setup.sh` as your normal user, **not with sudo**. It creates `.venv`, installs dependencies, creates `.env` only if absent, installs both user services, and restarts them to apply configuration changes. Existing `.env` values are preserved except that the old stock defaults `8001`/`8002` are migrated to `9000`/`9001`; custom ports are retained.
+Run `setup.sh` as your normal user, **not with sudo**. It creates a VM-local virtual environment under `~/.venvs/forge-fracture-training-site` (works with VirtualBox shared folders), installs dependencies, creates `.env` only if absent, installs both user services, and restarts them to apply configuration changes. Existing `.env` values are preserved except that the old stock defaults `8001`/`8002` are migrated to `9002`/`9001`; custom ports are retained.
 
 ### 2. Set the participant-reachable URL
 
@@ -88,7 +88,7 @@ systemctl --user restart forge-fracture-training-trainer forge-fracture-training
 systemctl --user --no-pager --full status forge-fracture-training-trainer forge-fracture-training-dvwb
 ```
 
-Participant URLs are `http://YOUR-KALI-IP:9000/` for the field guide and `http://YOUR-KALI-IP:9001/` for the DVWB. Permit TCP 9000 and 9001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data. The login SQL-injection exercise stores the public demo passwords in a dedicated plaintext training column; this is deliberately unsafe and must never be copied into a real application.
+Participant URLs are `http://YOUR-KALI-IP:9002/` for the field guide and `http://YOUR-KALI-IP:9001/` for the DVWB. Permit TCP 9002 and 9001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data. The login SQL-injection exercise stores the public demo passwords in a dedicated plaintext training column; this is deliberately unsafe and must never be copied into a real application.
 
 Built-in demo accounts are recreated when the DVWB starts: `participant.asha`, `participant.rohan`, `participant.kabir`, `participant.nila`, and `participant.dev` use password `utsav-learn`; `organizer.team` uses `portal-coach`. These are public training credentials, not secure user accounts.
 
@@ -102,7 +102,7 @@ scripts/reset-training-state.sh
 
 It detects the training services, stops any that are running, displays the database and row counts, and asks you to type `RESET`. If confirmed, it creates and verifies a private pre-reset SQLite backup under `instance/backups/`, clears all database rows, and restarts the services that were running. On startup, the DVWB recreates its built-in fictional demo accounts, catalogue, records, dashboard views, and default settings. This undoes database changes made during exercises, such as modifying the global notice. It does not delete training documents or source code. Protect the backup because it contains the pre-reset database state.
 
-For manual inspection only, `./.venv/bin/python scripts/reset_database.py` performs a dry run and does not change anything. The reset command uses the same database path configured by `DVWB_DATABASE_URL` in `.env`.
+For manual inspection only, `~/.venvs/forge-fracture-training-site/bin/python scripts/reset_database.py` performs a dry run and does not change anything. The reset command uses the same database path configured by `DVWB_DATABASE_URL` in `.env`.
 
 ### 4. Run tests locally
 

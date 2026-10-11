@@ -3,9 +3,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_default_training_ports_are_9000_and_9001():
+def test_default_training_ports_are_9002_and_9001():
     env = (ROOT / ".env.example").read_text()
-    assert "TRAINER_PORT=9000" in env
+    assert "TRAINER_PORT=9002" in env
     assert "DVWB_PORT=9001" in env
     assert "DVWB_PUBLIC_URL=http://192.168.10.10:9001/" in env
 
@@ -22,7 +22,7 @@ def test_systemd_services_use_env_aware_runner_scripts():
 def test_runner_scripts_consume_configured_port_environment():
     trainer = (ROOT / "scripts/run-trainer.sh").read_text()
     dvwb = (ROOT / "scripts/run-dvwb.sh").read_text()
-    assert '"$TRAINER_PORT"' in trainer and 'TRAINER_PORT:=9000' in trainer
+    assert '"$TRAINER_PORT"' in trainer and 'TRAINER_PORT:=9002' in trainer
     assert '"$DVWB_PORT"' in dvwb and 'DVWB_PORT:=9001' in dvwb
 
 
@@ -31,3 +31,23 @@ def test_interactive_state_reset_command_exists_and_requires_confirmation():
     assert "reset_database.py" in reset
     assert "Type RESET" in reset
     assert "restart_services" in reset
+
+
+def test_shared_folder_setup_uses_native_venv_and_checks_expected_apps():
+    setup = (ROOT / "setup.sh").read_text()
+    assert "$HOME/.venvs/forge-fracture-training-site" in setup
+    assert '"Security Field Manual" "Trainer"' in setup
+    assert '"Sign in to Utsav" "DVWB"' in setup
+
+
+def test_trainer_sql_injection_demo_recognizes_common_tautologies():
+    script = (ROOT / "app.js").read_text()
+    assert "function hasTautology(v)" in script
+    assert "function hasSqlTautology(value)" in script
+    for sample in ("or1=1", "orx=x", "or2>1"):
+        assert sample in script
+
+
+def test_trainer_script_asset_version_changes_when_app_bundle_changes():
+    html = (ROOT / "index.html").read_text()
+    assert 'app.js?v=13' in html

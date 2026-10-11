@@ -3,8 +3,10 @@
 set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-PYTHON="$ROOT/.venv/bin/python"
-[[ -x "$PYTHON" ]] || { echo "Missing .venv. Run bash setup.sh first." >&2; exit 1; }
+VENV_DIR="${FORGE_TRAINING_VENV:-$HOME/.venvs/forge-fracture-training-site}"
+if [[ ! -x "$VENV_DIR/bin/python" && -x "$ROOT/.venv/bin/python" ]]; then VENV_DIR="$ROOT/.venv"; fi
+PYTHON="$VENV_DIR/bin/python"
+[[ -x "$PYTHON" ]] || { echo "Missing training virtualenv. Run bash setup.sh first." >&2; exit 1; }
 USER_DVWB=forge-fracture-training-dvwb.service
 USER_TRAINER=forge-fracture-training-trainer.service
 SYSTEM_DVWB=forge-fracture-dvwb.service

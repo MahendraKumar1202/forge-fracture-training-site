@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# VirtualBox shared folders (vboxsf) reject symlinks; keep the venv on the VM's native filesystem.
+VENV_DIR="${FORGE_TRAINING_VENV:-$HOME/.venvs/forge-fracture-training-site}"
+PYTHON="$VENV_DIR/bin/python"
 cd "$ROOT"
 if [[ $EUID -eq 0 ]]; then echo "Run as your normal Kali user, not with sudo." >&2; exit 1; fi
 for f in dvwb/app.py dvwb/trainer.py dvwb/requirements.txt; do [[ -f "$f" ]] || { echo "Missing $f; run this from the extracted repository root." >&2; exit 1; }; done
 command -v python3 >/dev/null || { echo "python3 is required." >&2; exit 1; }
-if ! python3 -m venv .venv 2>/dev/null; then
-  rm -rf .venv
+mkdir -p "$(dirname -- "$VENV_DIR")"
+if ! python3 -m venv "$VENV_DIR" 2>/dev/null; then
+  rm -rf "$VENV_DIR"
   if ! command -v sudo >/dev/null || ! command -v apt-get >/dev/null; then
     echo "Python venv support is missing. Install python3-venv (or python3.X-venv) and rerun." >&2
     exit 1
@@ -15,11 +19,11 @@ if ! python3 -m venv .venv 2>/dev/null; then
   sudo apt-get update
   if apt-cache show "python${PY_MINOR}-venv" >/dev/null 2>&1; then VENV_PACKAGE="python${PY_MINOR}-venv"; else VENV_PACKAGE=python3-venv; fi
   sudo apt-get install -y "$VENV_PACKAGE"
-  python3 -m venv .venv
+  python3 -m venv "$VENV_DIR"
 fi
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -r dvwb/requirements.txt
-.venv/bin/python -m pip install -r requirements-dev.txt
+"$PYTHON" -m pip install --upgrade pip
+"$PYTHON" -m pip install -r dvwb/requirements.txt
+"$PYTHON" -m pip install -r requirements-dev.txt
 mkdir -p instance/backups "$HOME/.config/systemd/user"
 chmod 700 instance instance/backups
 if [[ ! -f .env ]]; then
@@ -42,13 +46,13 @@ import re, sys
 from pathlib import Path
 p = Path(sys.argv[1])
 s = p.read_text()
-s = re.sub(r'(?m)^TRAINER_PORT=8001\s*$', 'TRAINER_PORT=9000', s)
+s = re.sub(r'(?m)^TRAINER_PORT=8001\s*$', 'TRAINER_PORT=9002', s)
 s = re.sub(r'(?m)^DVWB_PORT=8002\s*$', 'DVWB_PORT=9001', s)
 s = re.sub(r'(?m)^(DVWB_PUBLIC_URL=.*):8002(/?)\s*$', r'\g<1>:9001\2', s)
 p.write_text(s)
 PYENV
   chmod 600 .env
-  echo "Preserved existing .env; migrated old default ports 8001/8002 to 9000/9001 where they were unchanged defaults."
+  echo "Preserved existing .env; migrated old default ports 8001/8002 to 9002/9001 where they were unchanged defaults."
 fi
 # Load the exact values systemd will receive so readiness checks and printed URLs agree.
 set -a
@@ -71,20 +75,33 @@ if ! systemctl --user restart forge-fracture-training-dvwb.service forge-fractur
   journalctl --user -u forge-fracture-training-dvwb.service -u forge-fracture-training-trainer.service -n 60 --no-pager || true
   exit 1
 fi
-for port in "${TRAINER_PORT:-9000}" "${DVWB_PORT:-9001}"; do
-  if ! .venv/bin/python - "$port" <<'PY'
+check_ready() {
+  local port="$1" marker="$2" label="$3"
+  if ! "$PYTHON" - "$port" "$marker" <<'PYREADY'
 import sys, time, urllib.request
-port=int(sys.argv[1]); url=f'http://127.0.0.1:{port}/'
-for _ in range(30):
+port, marker = int(sys.argv[1]), sys.argv[2]
+url = f'http://127.0.0.1:{port}/'
+for _ in range(15):
  try:
-  with urllib.request.urlopen(url, timeout=2) as r:
-   if r.status < 500: raise SystemExit(0)
- except Exception: pass
+  with urllib.request.urlopen(url, timeout=2) as response:
+   body = response.read().decode('utf-8', 'replace')
+   if response.status < 500 and marker in body:
+    raise SystemExit(0)
+ except Exception:
+  pass
  time.sleep(1)
 raise SystemExit(1)
-PY
-  then echo "Warning: port $port did not become ready; inspect journalctl --user -u forge-fracture-training-dvwb -n 80 (or trainer service)." >&2; fi
-done
-printf '\nTrainer: http://<KALI-VM-IP>:%s/\nDVWB:    http://<KALI-VM-IP>:%s/\nServices enabled. Closing the terminal will not stop them; with lingering disabled, keep your Kali user session logged in.\n' "${TRAINER_PORT:-9000}" "${DVWB_PORT:-9001}"
+PYREADY
+  then
+    echo "ERROR: $label did not return its expected page on port $port. Check port conflicts and service logs." >&2
+    systemctl --user --no-pager --full status forge-fracture-training-dvwb.service forge-fracture-training-trainer.service || true
+    journalctl --user -u forge-fracture-training-dvwb.service -u forge-fracture-training-trainer.service -n 40 --no-pager || true
+    return 1
+  fi
+  echo "[OK] $label responding on port $port"
+}
+check_ready "${TRAINER_PORT:-9002}" "Security Field Manual" "Trainer"
+check_ready "${DVWB_PORT:-9001}" "Sign in to Utsav" "DVWB"
+printf '\nTrainer: http://<KALI-VM-IP>:%s/\nDVWB:    http://<KALI-VM-IP>:%s/\nServices enabled. Closing the terminal will not stop them; with lingering disabled, keep your Kali user session logged in.\n' "${TRAINER_PORT:-9002}" "${DVWB_PORT:-9001}"
 printf 'Reset altered DVWB state: scripts/reset-training-state.sh\n'
 printf 'Use: systemctl --user status forge-fracture-training-trainer forge-fracture-training-dvwb\n'

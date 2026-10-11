@@ -693,7 +693,7 @@
       "function card(title,body,kindName){var c=node('article','site-card');if(kindName)add(c,'span','site-label',kindName);add(c,'h3','',title);if(body)add(c,'p','',body);return c;}",
       "function note(title,body,tone){var n=node('div','site-notice '+(tone||''));add(n,'strong','',title);add(n,'p','',body);return n;}",
       "function queryPath(){var val=field?field.value:'';if(kind==='sqli')return pagePath+'?term='+encodeURIComponent(val);if(kind==='idor')return '/members/'+encodeURIComponent(val);if(kind==='traversal')return pagePath+'?file='+encodeURIComponent(val);if(kind==='xss')return pagePath+'?q='+encodeURIComponent(val);return pagePath+'?role='+encodeURIComponent(role.value)+'&action='+encodeURIComponent(action.value);}",
-      "function hasTautology(v){return /\\bOR\\s+['\\\"]?1['\\\"]?\\s*=\\s*['\\\"]?1['\\\"]?/i.test(v);}",
+      "function hasTautology(v){var s=String(v||'').toLowerCase().split(' ').join('').split(String.fromCharCode(39)).join('').split(String.fromCharCode(34)).join('');return s.indexOf('or1=1')>=0||s.indexOf('orx=x')>=0||s.indexOf('or2>1')>=0;}",
       "function outcome(){var v=field?field.value:'';if(kind==='sqli'){if(vulnerable&&hasTautology(v))return {state:'exposed',title:'Query changed · 3 products returned',body:'The search condition became true for every item in this synthetic shop.'};if(!vulnerable)return {state:'safe',title:'Protected search · 0 matches',body:'The complete input is treated as one product name.'};return {state:'neutral',title:'No matching products',body:'Try the loaded sample or a product name.'};}",
       "if(kind==='idor'){if(v==='record-101')return {state:'safe',title:'Your profile',body:'Member A · My saved post'};if(v==='record-102'&&vulnerable)return {state:'exposed',title:'Another member profile exposed',body:'Member B · Private post (fictional sample)'};if(v==='record-102')return {state:'blocked',title:'403 · Profile access denied',body:'The signed-in member does not own this profile.'};return {state:'neutral',title:'404 · Profile not found',body:'No matching profile exists in the fictional profile store.'};}",
       "if(kind==='traversal'){var climbs=v.split(/[\\\\/]+/).some(function(part){return part==='..';});if(climbs&&vulnerable)return {state:'exposed',title:'Private lesson note displayed',body:'Instructor review notes · synthetic sample only'};if(climbs)return {state:'blocked',title:'403 · Outside lesson library',body:'The resolved path is not contained in the public materials folder.'};if(v.trim()==='lesson.txt')return {state:'safe',title:'Public lesson opened',body:'Welcome to the course materials library.'};return {state:'neutral',title:'404 · File not found',body:'Try lesson.txt or the preloaded sample.'};}",
@@ -1086,6 +1086,12 @@
     button.type = "submit";
     return form;
   }
+  function hasSqlTautology(value) {
+    var s = String(value || "").toLowerCase().split(" ").join("")
+      .split(String.fromCharCode(39)).join("").split(String.fromCharCode(34)).join("");
+    return s.indexOf("or1=1") >= 0 || s.indexOf("orx=x") >= 0 || s.indexOf("or2>1") >= 0;
+  }
+
   function shellSample(node) {
     var shell = node.closest(".demo-shell");
     return shell ? shell.getAttribute("data-demo-sample") || "" : "";
@@ -1280,7 +1286,7 @@
     shell.setAttribute("data-selected-action", selectedAction);
     var result = { state: "neutral", status: "SIMULATED RESPONSE", statusCode: 200, request: "", decision: "", response: "", trace: [], unsafe: unsafe };
     if (id === "sqli") {
-      var tautology = /\bOR\s+['"]?1['"]?\s*=\s*['"]?1['"]?/i.test(value);
+      var tautology = hasSqlTautology(value);
       result.request = "GET /practice/catalog?term=" + encodeURIComponent(value);
       if (unsafe && tautology) {
         result.state = "exposed"; result.status = "QUERY LOGIC CHANGED";
