@@ -480,7 +480,9 @@ def login(request: Request, username: str = Form(""), password: str = Form("")):
     except SQLAlchemyError:
         logger.exception("Database error while creating a login session")
         return HTMLResponse(login_view("The training database could not complete sign-in. Please retry."), status_code=503)
-    response = RedirectResponse("/dashboard", status_code=303)
+    # Land on the concrete participant view in one hop; /dashboard without a
+    # view otherwise performs a second redirect before rendering the portal.
+    response = RedirectResponse("/dashboard?view=participant", status_code=303)
     response.set_cookie("utsav_session", token, httponly=True, samesite="lax")
     return response
 
