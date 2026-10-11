@@ -5,7 +5,7 @@ This repository contains two connected websites:
 1. **Trainer** — a field guide covering networking, Nmap, Zenmap, Wireshark, Linux commands, and four web vulnerability topics.
 2. **DVWB** — a separate FastAPI application using SQLAlchemy and SQLite. Participants enter through its login page and explore fictional event workflows. Its intentionally vulnerable exercises cover SQL injection at login and in searches, IDOR, path traversal, and broken access control. The President portal contains fictional confidential documents and double-octal encoded `AXA {…}` markers.
 
-The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 9002 (trainer) and 9001 (DVWB). Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
+The DVWB is deliberately vulnerable. Use it only on a private, authorized workshop network. Do not expose it to the public internet or a production network. The quick Kali installer below runs two user-level systemd services on ports 9002 (trainer) and 10001 (DVWB). Restrict access with the VM firewall and the Proxmox/network firewall to the workshop subnet. An alternative Nginx deployment with loopback-bound app services and a participant-subnet allowlist follows later in this README.
 
 ## A. Run both sites locally on Windows
 
@@ -47,10 +47,10 @@ py -m uvicorn dvwb.trainer:app --host 127.0.0.1 --port 9002
 In **window 2**, start the DVWB:
 
 ```cmd
-py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 9001
+py -m uvicorn dvwb.app:app --host 127.0.0.1 --port 10001
 ```
 
-Open [http://127.0.0.1:9002/](http://127.0.0.1:9002/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:9001/](http://127.0.0.1:9001/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
+Open [http://127.0.0.1:9002/](http://127.0.0.1:9002/) for the trainer. Select **Open the DVWB** to open [http://127.0.0.1:10001/](http://127.0.0.1:10001/). Keep both server windows running while using the sites. Stop a server with **Ctrl+C** in its own window.
 
 The DVWB creates its local SQLite database at `dvwb/dvwb.sqlite3` on first launch in the manual local-development mode. Do not commit that runtime database. The Kali installer uses `instance/dvwb.sqlite3` by default.
 
@@ -71,7 +71,7 @@ cd ~/forge-fracture-training-site
 bash setup.sh
 ```
 
-Run `setup.sh` as your normal user, **not with sudo**. It creates a VM-local virtual environment under `~/.venvs/forge-fracture-training-site` (works with VirtualBox shared folders), installs dependencies, creates `.env` only if absent, installs both user services, and restarts them to apply configuration changes. Existing `.env` values are preserved except that the old stock defaults `8001`/`8002` are migrated to `9002`/`9001`; custom ports are retained.
+Run `setup.sh` as your normal user, **not with sudo**. It creates a VM-local virtual environment under `~/.venvs/forge-fracture-training-site` (works with VirtualBox shared folders), installs dependencies, creates `.env` only if absent, installs both user services, and restarts them to apply configuration changes. Existing `.env` values are preserved except that the old stock defaults `8001`/`8002` are migrated to `9002`/`10001`; custom ports are retained.
 
 ### 2. Set the participant-reachable URL
 
@@ -81,14 +81,14 @@ Find the Kali VM's address with `ip -br addr`, then edit `.env`:
 nano .env
 ```
 
-Set `DVWB_PUBLIC_URL` to `http://YOUR-KALI-IP:9001/`, save, then restart both services so the trainer link and DVWB config are loaded:
+Set `DVWB_PUBLIC_URL` to `http://YOUR-KALI-IP:10001/`, save, then restart both services so the trainer link and DVWB config are loaded:
 
 ```bash
 systemctl --user restart forge-fracture-training-trainer forge-fracture-training-dvwb
 systemctl --user --no-pager --full status forge-fracture-training-trainer forge-fracture-training-dvwb
 ```
 
-Participant URLs are `http://YOUR-KALI-IP:9002/` for the field guide and `http://YOUR-KALI-IP:9001/` for the DVWB. Permit TCP 9002 and 9001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data. The login SQL-injection exercise stores the public demo passwords in a dedicated plaintext training column; this is deliberately unsafe and must never be copied into a real application.
+Participant URLs are `http://YOUR-KALI-IP:9002/` for the field guide and `http://YOUR-KALI-IP:10001/` for the DVWB. Permit TCP 9002 and 10001 only from the workshop subnet. The application is intentionally vulnerable and contains fictional records; do not use real credentials or data. The login SQL-injection exercise stores the public demo passwords in a dedicated plaintext training column; this is deliberately unsafe and must never be copied into a real application.
 
 Built-in demo accounts are recreated when the DVWB starts: `participant.asha`, `participant.rohan`, `participant.kabir`, `participant.nila`, and `participant.dev` use password `utsav-learn`; `organizer.team` uses `portal-coach`. These are public training credentials, not secure user accounts.
 

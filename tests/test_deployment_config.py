@@ -3,11 +3,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_default_training_ports_are_9002_and_9001():
+def test_default_training_ports_are_9002_and_10001():
     env = (ROOT / ".env.example").read_text()
     assert "TRAINER_PORT=9002" in env
-    assert "DVWB_PORT=9001" in env
-    assert "DVWB_PUBLIC_URL=http://192.168.10.10:9001/" in env
+    assert "DVWB_PORT=10001" in env
+    assert "DVWB_PUBLIC_URL=http://192.168.10.10:10001/" in env
 
 
 def test_systemd_services_use_env_aware_runner_scripts():
@@ -23,7 +23,7 @@ def test_runner_scripts_consume_configured_port_environment():
     trainer = (ROOT / "scripts/run-trainer.sh").read_text()
     dvwb = (ROOT / "scripts/run-dvwb.sh").read_text()
     assert '"$TRAINER_PORT"' in trainer and 'TRAINER_PORT:=9002' in trainer
-    assert '"$DVWB_PORT"' in dvwb and 'DVWB_PORT:=9001' in dvwb
+    assert '"$DVWB_PORT"' in dvwb and 'DVWB_PORT:=10001' in dvwb
 
 
 def test_interactive_state_reset_command_exists_and_requires_confirmation():

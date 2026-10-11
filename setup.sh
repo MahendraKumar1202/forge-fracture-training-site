@@ -47,18 +47,20 @@ from pathlib import Path
 p = Path(sys.argv[1])
 s = p.read_text()
 s = re.sub(r'(?m)^TRAINER_PORT=8001\s*$', 'TRAINER_PORT=9002', s)
-s = re.sub(r'(?m)^DVWB_PORT=8002\s*$', 'DVWB_PORT=9001', s)
-s = re.sub(r'(?m)^(DVWB_PUBLIC_URL=.*):8002(/?)\s*$', r'\g<1>:9001\2', s)
+s = re.sub(r'(?m)^DVWB_PORT=8002\s*$', 'DVWB_PORT=10001', s)
+s = re.sub(r'(?m)^DVWB_PORT=9001\s*$', 'DVWB_PORT=10001', s)
+s = re.sub(r'(?m)^(DVWB_PUBLIC_URL=.*):8002(/?)\s*$', r'\g<1>:10001\2', s)
+s = re.sub(r'(?m)^(DVWB_PUBLIC_URL=.*):9001(/?)\s*$', r'\g<1>:10001\2', s)
 p.write_text(s)
 PYENV
   chmod 600 .env
-  echo "Preserved existing .env; migrated old default ports 8001/8002 to 9002/9001 where they were unchanged defaults."
+  echo "Preserved existing .env; migrated old default ports to trainer 9002 and DVWB 10001 where they were unchanged defaults."
 fi
 # Load the exact values systemd will receive so readiness checks and printed URLs agree.
 set -a
 . "$ROOT/.env"
 set +a
-if [[ "${DVWB_PUBLIC_URL:-}" == "http://192.168.10.10:9001/" ]]; then
+if [[ "${DVWB_PUBLIC_URL:-}" == "http://192.168.10.10:10001/" ]]; then
   echo "WARNING: .env still has the example DVWB_PUBLIC_URL. Set it to this VM's participant-reachable IP before using the trainer link."
 fi
 # Keep systemd unit copies local to this checkout so service paths remain deterministic.
@@ -101,7 +103,7 @@ PYREADY
   echo "[OK] $label responding on port $port"
 }
 check_ready "${TRAINER_PORT:-9002}" "Security Field Manual" "Trainer"
-check_ready "${DVWB_PORT:-9001}" "Sign in to Utsav" "DVWB"
-printf '\nTrainer: http://<KALI-VM-IP>:%s/\nDVWB:    http://<KALI-VM-IP>:%s/\nServices enabled. Closing the terminal will not stop them; with lingering disabled, keep your Kali user session logged in.\n' "${TRAINER_PORT:-9002}" "${DVWB_PORT:-9001}"
+check_ready "${DVWB_PORT:-10001}" "Sign in to Utsav" "DVWB"
+printf '\nTrainer: http://<KALI-VM-IP>:%s/\nDVWB:    http://<KALI-VM-IP>:%s/\nServices enabled. Closing the terminal will not stop them; with lingering disabled, keep your Kali user session logged in.\n' "${TRAINER_PORT:-9002}" "${DVWB_PORT:-10001}"
 printf 'Reset altered DVWB state: scripts/reset-training-state.sh\n'
 printf 'Use: systemctl --user status forge-fracture-training-trainer forge-fracture-training-dvwb\n'

@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 ROOT = Path(__file__).resolve().parent.parent
-DVWB_PUBLIC_URL = os.getenv("DVWB_PUBLIC_URL", "http://127.0.0.1:8002/")
+DVWB_PUBLIC_URL = os.getenv("DVWB_PUBLIC_URL", "http://127.0.0.1:10001/")
 app = FastAPI(title="Forge & Fracture Security Field Manual", docs_url=None, redoc_url=None)
 
 
